@@ -1,32 +1,31 @@
-# React + TypeScript + Vite
+# Whiteboard — Tablero personal de Jaime
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Un pizarrón infinito pensado para la Lenovo Yoga Chromebook (touchscreen + stylus):
+dibujo libre con tinta sensible a la presión, más **tarjetas-objeto vivas** cuyo
+comportamiento lo definen sus datos.
 
-Currently, two official plugins are available:
+## La tarjeta universal
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Un solo tipo de objeto (`universal-card`) con propiedades `kind`, `title`, `body`
+y `done`. Hoy sabe ser:
 
-## React Compiler
+- **todo** — con casilla que funciona de verdad (doble toque para interactuar)
+- **nota** — tarjeta informativa
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Mañana puede ser una cita, un goal, una idea, un recordatorio o un correo, sin
+tocar el lienzo: basta agregarle el comportamiento a la tarjeta.
 
-## Expanding the Oxlint configuration
+## Tecnología
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- [tldraw](https://tldraw.dev) 5.5 (SDK de lienzo infinito) — licencia hobby para uso personal
+- React + TypeScript + Vite
+- Persistencia local del tablero en el navegador
+- Publicado con GitHub Pages vía Actions
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Desarrollo
+
+```bash
+npm install
+npm run dev     # servidor local
+npm run build   # build de producción en dist/
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
