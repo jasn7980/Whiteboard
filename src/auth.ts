@@ -20,8 +20,14 @@ async function getMsal(): Promise<PublicClientApplication> {
       cache: { cacheLocation: 'localStorage' },
     })
     await pca.initialize()
+    // Flujo por redirección: al volver de Microsoft, aquí se completa el
+    // inicio de sesión y se limpia el estado de interacción.
+    const redirectResult = await pca.handleRedirectPromise().catch(() => null)
+    if (redirectResult?.account) pca.setActiveAccount(redirectResult.account)
     const accounts = pca.getAllAccounts()
-    if (accounts.length > 0) pca.setActiveAccount(accounts[0])
+    if (accounts.length > 0 && !pca.getActiveAccount()) {
+      pca.setActiveAccount(accounts[0])
+    }
   }
   return pca
 }
@@ -32,30 +38,39 @@ export async function getAccount(): Promise<AccountInfo | null> {
   return instance.getActiveAccount() ?? instance.getAllAccounts()[0] ?? null
 }
 
-export async function signIn(): Promise<AccountInfo> {
+export async function signIn(): Promise<void> {
   const instance = await getMsal()
-  const result = await instance.loginPopup({ scopes: SCOPES.base })
-  if (result.account) instance.setActiveAccount(result.account)
-  return result.account
+  // Redirección (no popup): los popups de login son frágiles en ChromeOS y
+  // dejaban el estado "interaction_in_progress" atascado. La página va a
+  // Microsoft y regresa; getMsal() completa el flujo con
+  // handleRedirectPromise() al cargar.
+  await instance.loginRedirect({ scopes: SCOPES.base })
 }
 
 export async function signOut(): Promise<void> {
   const instance = await getMsal()
   const account = await getAccount()
-  await instance.logoutPopup(account ? { account } : undefined)
+  await instance.logoutRedirect(account ? { account } : undefined)
 }
 
 /** Token para Microsoft Graph; pide consentimiento solo si hace falta. */
 export async function getToken(scopes: string[]): Promise<string> {
   const instance = await getMsal()
-  const account = (await getAccount()) ?? (await signIn())
+  const account = await getAccount()
+  if (!account) {
+    // Sin sesión: redirige a Microsoft (la página regresa ya conectada).
+    await signIn()
+    throw new Error('Redirigiendo a Microsoft para iniciar sesión…')
+  }
   try {
     const silent = await instance.acquireTokenSilent({ scopes, account })
     return silent.accessToken
   } catch (error) {
     if (error instanceof InteractionRequiredAuthError) {
-      const interactive = await instance.acquireTokenPopup({ scopes })
-      return interactive.accessToken
+      // Falta consentimiento: redirige y, al volver, hay que reintentar
+      // la acción (el token ya saldrá en silencio).
+      await instance.acquireTokenRedirect({ scopes })
+      throw new Error('Redirigiendo a Microsoft para autorizar…')
     }
     throw error
   }

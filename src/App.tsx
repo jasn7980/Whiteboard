@@ -58,13 +58,13 @@ export default function App() {
   const handleSignIn = async () => {
     setAuthBusy(true)
     try {
-      setAccount(await signIn())
+      // Redirige a Microsoft; si regresamos aquí es que algo falló.
+      await signIn()
     } catch (e) {
       // Mostrar el error en vez de fallar en silencio (diagnóstico).
       window.alert(
         'No se pudo conectar: ' + (e instanceof Error ? e.message : String(e)),
       )
-    } finally {
       setAuthBusy(false)
     }
   }
