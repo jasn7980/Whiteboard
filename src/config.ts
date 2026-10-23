@@ -15,6 +15,16 @@ export const SCOPES = {
   notes: ['Notes.Create'],
 }
 
+// Todos los permisos juntos al conectar: así Microsoft pide el
+// consentimiento una sola vez y crear tareas/citas/ideas después
+// funciona en un solo clic, sin redirecciones a mitad de la acción.
+export const ALL_SCOPES = [
+  ...SCOPES.base,
+  ...SCOPES.calendar,
+  ...SCOPES.tasks,
+  ...SCOPES.notes,
+]
+
 export const TIME_ZONE = 'America/Toronto'
 
 // Clave de licencia de tldraw (Trial/Hobby). Sin una clave válida, el SDK

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   HTMLContainer,
   Rectangle2d,
@@ -9,7 +9,7 @@ import {
   useIsEditing,
 } from 'tldraw'
 import type { RecordProps, TLBaseShape, TLResizeInfo } from 'tldraw'
-import { getToken, isConfigured } from './auth'
+import { getAccount, getToken, isConfigured } from './auth'
 import { SCOPES } from './config'
 import { createCalendarEvent, createOneNotePage, createTodoTask, setTodoTaskDone } from './graph'
 
@@ -69,6 +69,42 @@ function formatWhen(iso: string): string {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Acción remota pendiente: si al crear el objeto en Outlook falta un
+// consentimiento, MSAL redirige a Microsoft y la acción se interrumpía
+// (al volver había que presionar el botón otra vez, y casi nadie lo hacía:
+// la tarea nunca nacía). Guardamos la intención y al regresar la tarjeta
+// misma la completa automáticamente, una sola vez.
+// ---------------------------------------------------------------------------
+const PENDING_KEY = 'tablero-pending-remote'
+
+type PendingRemote = { shapeId: string; kind: string; attempts: number }
+
+function readPending(): PendingRemote | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY)
+    return raw ? (JSON.parse(raw) as PendingRemote) : null
+  } catch {
+    return null
+  }
+}
+
+function writePending(p: PendingRemote) {
+  try {
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify(p))
+  } catch {
+    /* almacenamiento no disponible: se ignora */
+  }
+}
+
+function clearPending(shapeId: string) {
+  try {
+    if (readPending()?.shapeId === shapeId) sessionStorage.removeItem(PENDING_KEY)
+  } catch {
+    /* ignorar */
+  }
+}
+
 function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
   const editor = useEditor()
   const isEditing = useIsEditing(shape.id)
@@ -110,23 +146,55 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
     }
   }
 
-  const createRemote = () => {
+  const createRemote = (preserveAttempts = false) => {
     void run(async () => {
-      if (kind === 'todo') {
-        const token = await getToken(SCOPES.tasks)
-        const { listId, taskId } = await createTodoTask(token, title)
-        patch({ linkId: taskId, linkListId: listId })
-      } else if (kind === 'cita') {
-        const token = await getToken(SCOPES.calendar)
-        const eventId = await createCalendarEvent(token, title, startAt, endAt)
-        patch({ linkId: eventId, startAt, endAt })
-      } else if (kind === 'idea') {
-        const token = await getToken(SCOPES.notes)
-        const pageId = await createOneNotePage(token, title, body)
-        patch({ linkId: pageId })
+      const existing = readPending()
+      const attempts =
+        preserveAttempts && existing?.shapeId === shape.id ? existing.attempts : 0
+      writePending({ shapeId: shape.id, kind, attempts })
+      try {
+        if (kind === 'todo') {
+          const token = await getToken(SCOPES.tasks)
+          const { listId, taskId } = await createTodoTask(token, title, body)
+          patch({ linkId: taskId, linkListId: listId })
+        } else if (kind === 'cita') {
+          const token = await getToken(SCOPES.calendar)
+          const eventId = await createCalendarEvent(token, title, startAt, endAt)
+          patch({ linkId: eventId, startAt, endAt })
+        } else if (kind === 'idea') {
+          const token = await getToken(SCOPES.notes)
+          const pageId = await createOneNotePage(token, title, body)
+          patch({ linkId: pageId })
+        }
+        clearPending(shape.id)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        // Si nos vamos a Microsoft a autorizar, la intención queda guardada
+        // y se completa sola al volver; cualquier otro error la cancela.
+        if (!msg.startsWith('Redirigiendo')) clearPending(shape.id)
+        throw e
       }
     })
   }
+
+  // Al volver de una redirección de autorización, completar la acción
+  // pendiente de ESTA tarjeta (una sola vez, y solo con sesión activa).
+  const autoRetriedRef = useRef(false)
+  useEffect(() => {
+    if (autoRetriedRef.current) return
+    autoRetriedRef.current = true
+    void (async () => {
+      const pending = readPending()
+      if (!pending || pending.shapeId !== shape.id || pending.attempts >= 1) return
+      if (shape.props.linkId) return
+      const acc = await getAccount().catch(() => null)
+      if (!acc) return
+      writePending({ ...pending, attempts: 1 })
+      createRemote(true)
+    })()
+    // Solo al montar: la intención se lee del almacenamiento de sesión.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const linkable = kind === 'todo' || kind === 'cita' || kind === 'idea'
   const serviceName = kind === 'idea' ? 'OneNote' : 'Outlook'
@@ -176,7 +244,11 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
         }}
       >
         <span>{kind}</span>
-        {linked ? <span title="Guardado en el servicio enlazado">☁ {serviceName}</span> : null}
+        {linked ? (
+          <span title="Guardado en el servicio enlazado">☁ {serviceName}</span>
+        ) : linkable ? (
+          <span title="Todavía solo existe en el tablero">○ solo aquí</span>
+        ) : null}
       </div>
       {isEditing ? (
         <input
@@ -267,7 +339,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
           <div style={{ fontSize: 12, color: '#2e7d32' }}>✓ Guardado en {serviceName}</div>
         ) : (
           <button
-            onClick={createRemote}
+            onClick={() => createRemote()}
             disabled={busy || !isConfigured()}
             style={{ fontSize: 13, padding: '6px 8px', cursor: 'pointer', marginTop: 4 }}
           >

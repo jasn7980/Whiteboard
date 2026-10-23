@@ -1,6 +1,6 @@
 import { InteractionRequiredAuthError, PublicClientApplication } from '@azure/msal-browser'
 import type { AccountInfo } from '@azure/msal-browser'
-import { MSAL_AUTHORITY, MSAL_CLIENT_ID, SCOPES } from './config'
+import { ALL_SCOPES, MSAL_AUTHORITY, MSAL_CLIENT_ID } from './config'
 
 let pca: PublicClientApplication | null = null
 
@@ -44,7 +44,7 @@ export async function signIn(): Promise<void> {
   // dejaban el estado "interaction_in_progress" atascado. La página va a
   // Microsoft y regresa; getMsal() completa el flujo con
   // handleRedirectPromise() al cargar.
-  await instance.loginRedirect({ scopes: SCOPES.base })
+  await instance.loginRedirect({ scopes: ALL_SCOPES })
 }
 
 export async function signOut(): Promise<void> {

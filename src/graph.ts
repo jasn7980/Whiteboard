@@ -44,12 +44,22 @@ export async function getDefaultTaskListId(token: string): Promise<string> {
 export async function createTodoTask(
   token: string,
   title: string,
+  body?: string,
 ): Promise<{ listId: string; taskId: string }> {
   const listId = await getDefaultTaskListId(token)
-  const task = await graph<{ id: string }>(token, `/me/todo/lists/${listId}/tasks`, {
-    method: 'POST',
-    body: JSON.stringify({ title }),
-  })
+  const task = await graph<{ id: string }>(
+    token,
+    `/me/todo/lists/${encodeURIComponent(listId)}/tasks`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        ...(body
+          ? { body: { content: body, contentType: 'text' } }
+          : {}),
+      }),
+    },
+  )
   return { listId, taskId: task.id }
 }
 
@@ -59,10 +69,14 @@ export async function setTodoTaskDone(
   taskId: string,
   done: boolean,
 ): Promise<void> {
-  await graph(token, `/me/todo/lists/${listId}/tasks/${taskId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status: done ? 'completed' : 'notStarted' }),
-  })
+  await graph(
+    token,
+    `/me/todo/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status: done ? 'completed' : 'notStarted' }),
+    },
+  )
 }
 
 // --- Outlook Calendar -------------------------------------------------------
