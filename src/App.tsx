@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Editor, Tldraw, createShapeId } from 'tldraw'
 import type { AccountInfo } from '@azure/msal-browser'
 import 'tldraw/tldraw.css'
@@ -68,6 +68,44 @@ export default function App() {
     }
   }
 
+  const handleMount = useCallback((editor: Editor) => {
+    editorRef.current = editor
+    // El tablero siempre en modo claro, sin importar el tema del sistema
+    editor.user.updateUserPreferences({ colorScheme: 'light' })
+    // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
+    // mostrar que los objetos son datos vivos, no dibujos.
+    if (editor.getCurrentPageShapes().length === 0) {
+      editor.createShape({
+        id: createShapeId(),
+        type: 'universal-card',
+        x: 120,
+        y: 120,
+        props: {
+          w: 260,
+          h: 200,
+          kind: 'todo',
+          title: 'Probar el tablero en la Chromebook',
+          body: 'Doble toque en la tarjeta para interactuar con ella.',
+          done: false,
+        },
+      })
+      editor.createShape({
+        id: createShapeId(),
+        type: 'universal-card',
+        x: 440,
+        y: 120,
+        props: {
+          w: 260,
+          h: 200,
+          kind: 'nota',
+          title: 'Las tarjetas son objetos',
+          body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
+          done: false,
+        },
+      })
+    }
+  }, [])
+
   const handleSignOut = async () => {
     await signOut()
     setAccount(null)
@@ -84,47 +122,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-      <Tldraw
-        persistenceKey="tablero-de-jaime-v2"
-        shapeUtils={shapeUtils}
-        onMount={(editor) => {
-          editorRef.current = editor
-          // El tablero siempre en modo claro, sin importar el tema del sistema
-          editor.user.updateUserPreferences({ colorScheme: 'light' })
-          // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
-          // mostrar que los objetos son datos vivos, no dibujos.
-          if (editor.getCurrentPageShapes().length === 0) {
-            editor.createShape({
-              id: createShapeId(),
-              type: 'universal-card',
-              x: 120,
-              y: 120,
-              props: {
-                w: 260,
-                h: 200,
-                kind: 'todo',
-                title: 'Probar el tablero en la Chromebook',
-                body: 'Doble toque en la tarjeta para interactuar con ella.',
-                done: false,
-              },
-            })
-            editor.createShape({
-              id: createShapeId(),
-              type: 'universal-card',
-              x: 440,
-              y: 120,
-              props: {
-                w: 260,
-                h: 200,
-                kind: 'nota',
-                title: 'Las tarjetas son objetos',
-                body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
-                done: false,
-              },
-            })
-          }
-        }}
-      />
+      <Tldraw shapeUtils={shapeUtils} onMount={handleMount} />
       <div
         style={{
           position: 'fixed',
