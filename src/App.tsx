@@ -32,6 +32,19 @@ export default function App() {
   const editorRef = useRef<Editor | null>(null)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
+  const [debugError, setDebugError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => setDebugError(e.message || 'Error desconocido')
+    const onRejection = (e: PromiseRejectionEvent) =>
+      setDebugError(e.reason instanceof Error ? e.reason.message : String(e.reason))
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [])
 
   useEffect(() => {
     if (isConfigured()) {
@@ -72,7 +85,7 @@ export default function App() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw
-        persistenceKey="tablero-de-jaime"
+        persistenceKey="tablero-de-jaime-v2"
         shapeUtils={shapeUtils}
         onMount={(editor) => {
           editorRef.current = editor
@@ -171,6 +184,25 @@ export default function App() {
           <span style={{ fontSize: 12, color: '#999' }}>Outlook: falta el Client ID</span>
         )}
       </div>
+      {debugError ? (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 12,
+            left: 12,
+            right: 12,
+            zIndex: 400,
+            background: '#c62828',
+            color: '#fff',
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontFamily: 'monospace',
+            fontSize: 12,
+          }}
+        >
+          Error: {debugError}
+        </div>
+      ) : null}
     </div>
   )
 }
