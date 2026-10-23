@@ -38,13 +38,28 @@ export async function getAccount(): Promise<AccountInfo | null> {
   return instance.getActiveAccount() ?? instance.getAllAccounts()[0] ?? null
 }
 
+/** Traduce errores técnicos de MSAL a instrucciones accionables. */
+function friendlyAuthError(e: unknown): Error {
+  const msg = e instanceof Error ? e.message : String(e)
+  if (msg.includes('interaction_in_progress')) {
+    return new Error(
+      'Hay un inicio de sesión atascado en esta pestaña. Ciérrala por completo, vuelve a abrir el tablero e inténtalo de nuevo.',
+    )
+  }
+  return e instanceof Error ? e : new Error(msg)
+}
+
 export async function signIn(): Promise<void> {
   const instance = await getMsal()
   // Redirección (no popup): los popups de login son frágiles en ChromeOS y
   // dejaban el estado "interaction_in_progress" atascado. La página va a
   // Microsoft y regresa; getMsal() completa el flujo con
   // handleRedirectPromise() al cargar.
-  await instance.loginRedirect({ scopes: ALL_SCOPES })
+  try {
+    await instance.loginRedirect({ scopes: ALL_SCOPES })
+  } catch (e) {
+    throw friendlyAuthError(e)
+  }
 }
 
 export async function signOut(): Promise<void> {
@@ -69,9 +84,13 @@ export async function getToken(scopes: string[]): Promise<string> {
     if (error instanceof InteractionRequiredAuthError) {
       // Falta consentimiento: redirige y, al volver, hay que reintentar
       // la acción (el token ya saldrá en silencio).
-      await instance.acquireTokenRedirect({ scopes })
+      try {
+        await instance.acquireTokenRedirect({ scopes })
+      } catch (e) {
+        throw friendlyAuthError(e)
+      }
       throw new Error('Redirigiendo a Microsoft para autorizar…')
     }
-    throw error
+    throw friendlyAuthError(error)
   }
 }

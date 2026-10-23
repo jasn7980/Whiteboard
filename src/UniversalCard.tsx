@@ -105,6 +105,13 @@ function clearPending(shapeId: string) {
   }
 }
 
+// Los controles dentro de la tarjeta deben quedarse con el gesto: si el
+// pointerdown llega hasta el lienzo, tldraw lo interpreta como arrastre
+// de la forma y el clic del botón nunca sucede (pasa mucho con stylus).
+function stopGesture(e: { stopPropagation: () => void }) {
+  e.stopPropagation()
+}
+
 function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
   const editor = useEditor()
   const isEditing = useIsEditing(shape.id)
@@ -250,9 +257,25 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
           <span title="Todavía solo existe en el tablero">○ solo aquí</span>
         ) : null}
       </div>
+      {error ? (
+        <div
+          style={{
+            background: '#fdecea',
+            border: '1px solid #c62828',
+            color: '#7f0000',
+            borderRadius: 6,
+            padding: '4px 6px',
+            fontSize: 12,
+            wordBreak: 'break-word',
+          }}
+        >
+          {error.slice(0, 300)}
+        </div>
+      ) : null}
       {isEditing ? (
         <input
           value={title}
+          onPointerDown={stopGesture}
           onChange={(e) => patch({ title: e.target.value })}
           placeholder="Título"
           style={{
@@ -278,6 +301,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
       {isEditing ? (
         <textarea
           value={body}
+          onPointerDown={stopGesture}
           onChange={(e) => patch({ body: e.target.value })}
           placeholder="Escribe aquí…"
           rows={3}
@@ -303,6 +327,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
             Inicio{' '}
             <input
               type="datetime-local"
+              onPointerDown={stopGesture}
               value={startAt}
               onChange={(e) => patch({ startAt: e.target.value })}
             />
@@ -311,6 +336,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
             Fin{' '}
             <input
               type="datetime-local"
+              onPointerDown={stopGesture}
               value={endAt}
               onChange={(e) => patch({ endAt: e.target.value })}
             />
@@ -329,7 +355,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
             cursor: 'pointer',
           }}
         >
-          <input type="checkbox" checked={done} onChange={toggleDone} />
+          <input type="checkbox" checked={done} onPointerDown={stopGesture} onChange={toggleDone} />
           {done ? 'Hecho' : 'Pendiente'}
         </label>
       ) : null}
@@ -339,6 +365,7 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
           <div style={{ fontSize: 12, color: '#2e7d32' }}>✓ Guardado en {serviceName}</div>
         ) : (
           <button
+            onPointerDown={stopGesture}
             onClick={() => createRemote()}
             disabled={busy || !isConfigured()}
             style={{ fontSize: 13, padding: '6px 8px', cursor: 'pointer', marginTop: 4 }}
@@ -351,9 +378,6 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
         <div style={{ fontSize: 11, color: '#999' }}>
           (La conexión se activa al configurar el Client ID)
         </div>
-      ) : null}
-      {error ? (
-        <div style={{ fontSize: 11, color: '#c62828' }}>Error: {error.slice(0, 140)}</div>
       ) : null}
     </HTMLContainer>
   )
