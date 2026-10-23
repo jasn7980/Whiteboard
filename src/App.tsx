@@ -45,8 +45,11 @@ export default function App() {
     setAuthBusy(true)
     try {
       setAccount(await signIn())
-    } catch {
-      // El usuario cerró la ventana de login; sin ruido.
+    } catch (e) {
+      // Mostrar el error en vez de fallar en silencio (diagnóstico).
+      window.alert(
+        'No se pudo conectar: ' + (e instanceof Error ? e.message : String(e)),
+      )
     } finally {
       setAuthBusy(false)
     }
@@ -137,6 +140,18 @@ export default function App() {
         </button>
         <button style={barButton} onClick={() => editorRef.current && createCard(editorRef.current, 'idea', 'Nueva idea')}>
           + Idea
+        </button>
+        <button
+          style={barButton}
+          title="Encuadrar todo el contenido del tablero"
+          onClick={() => {
+            const ed = editorRef.current
+            if (!ed) return
+            if (ed.getCurrentPageShapes().length > 0) ed.zoomToFit()
+            else ed.resetZoom()
+          }}
+        >
+          🎯 Centrar
         </button>
         <div style={{ width: 1, alignSelf: 'stretch', background: '#ddd' }} />
         {isConfigured() ? (
