@@ -22,7 +22,7 @@ async function getMsal(): Promise<PublicClientApplication> {
         // Más paciencia para la renovación silenciosa del token: en la
         // Chromebook el iframe oculto de Microsoft a veces tarda y MSAL
         // abortaba con "timed_out" a los pocos segundos.
-        iframeHashTimeout: 15000,
+        iframeBridgeTimeout: 15000,
       },
     })
     await pca.initialize()
