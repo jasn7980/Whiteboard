@@ -4,7 +4,7 @@
 // (un trámite único con la cuenta de Jaime). No es secreto: en apps de
 // navegador el Client ID es público por diseño; la seguridad la da el
 // inicio de sesión del propio usuario.
-export const MSAL_CLIENT_ID = 'PENDIENTE-CLIENT-ID'
+export const MSAL_CLIENT_ID: string = '82cc697d-8b4b-4bff-a761-ca94bdc5f952'
 
 export const MSAL_AUTHORITY = 'https://login.microsoftonline.com/consumers'
 
