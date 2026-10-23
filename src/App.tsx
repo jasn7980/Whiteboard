@@ -7,6 +7,7 @@ import type { UniversalCardShapeProps } from './UniversalCard'
 import { getAccount, getToken, getTokenSilent, isConfigured, signIn, signOut } from './auth'
 import { fetchUpcomingEvents } from './graph'
 import { fitCardSize } from './fit'
+import { ensureMuseGif } from './museGif'
 import { syncCalendarEvents } from './sync'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
@@ -120,6 +121,8 @@ export default function App() {
 
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor
+    // Muse presente en el tablero, con sus movimientos de siempre.
+    ensureMuseGif(editor)
     // Si la cuenta ya se resolvió antes de montar el editor, sincroniza ahora.
     if (!autoSyncedRef.current) {
       getAccount()
