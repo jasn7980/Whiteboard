@@ -16,3 +16,9 @@ export const SCOPES = {
 }
 
 export const TIME_ZONE = 'America/Toronto'
+
+// Clave de licencia de tldraw (Trial/Hobby). Sin una clave válida, el SDK
+// oculta el editor a los pocos segundos en producción. La clave viaja en el
+// paquete público de la app (es un identificador del proyecto, no un secreto).
+export const TLDRAW_LICENSE_KEY: string =
+  'tldraw-2027-01-31/WyIxOTRmWFpsMiIsWyIqIl0sMTYsIjIwMjctMDEtMzEiXQ.raA3TBAqRB+bV5lGQWSgYOHsrENgMxR3PB4i2mKEdwO42VWdLwemZbfbA9E/qvQrcs0+QJk2azBwth0VYFn7Yg'

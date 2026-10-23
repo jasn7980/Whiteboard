@@ -4,7 +4,8 @@ import type { AccountInfo } from '@azure/msal-browser'
 import 'tldraw/tldraw.css'
 import { UniversalCardUtil } from './UniversalCard'
 import type { UniversalCardShapeProps } from './UniversalCard'
-import { isConfigured, signIn, signOut } from './auth'
+import { getAccount, isConfigured, signIn, signOut } from './auth'
+import { TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
 
@@ -33,7 +34,6 @@ export default function App() {
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
-  const [diag, setDiag] = useState('monitor: —')
 
   useEffect(() => {
     const onError = (e: ErrorEvent) => setDebugError(e.message || 'Error desconocido')
@@ -48,13 +48,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // DIAGNÓSTICO: arranque de MSAL deshabilitado temporalmente para
-    // aislar el bug que desmonta el editor segundos después de cargar.
-    // if (isConfigured()) {
-    //   getAccount()
-    //     .then(setAccount)
-    //     .catch(() => setAccount(null))
-    // }
+    if (isConfigured()) {
+      getAccount()
+        .then(setAccount)
+        .catch(() => setAccount(null))
+    }
   }, [])
 
   const handleSignIn = async () => {
@@ -73,19 +71,6 @@ export default function App() {
 
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor
-    // Monitor de diagnóstico: reporta en la barra si el editor sigue vivo.
-    const started = Date.now()
-    const timer = window.setInterval(() => {
-      try {
-        const shapes = editor.getCurrentPageShapes().length
-        const dom = document.querySelectorAll('.tl-container *').length
-        const secs = Math.round((Date.now() - started) / 1000)
-        setDiag(`vivo ${secs}s · formas:${shapes} · dom:${dom}`)
-      } catch (e) {
-        setDiag('EDITOR MUERTO: ' + (e instanceof Error ? e.message : String(e)))
-        window.clearInterval(timer)
-      }
-    }, 2000)
     // El tablero siempre en modo claro, sin importar el tema del sistema
     editor.user.updateUserPreferences({ colorScheme: 'light' })
     // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
@@ -138,7 +123,12 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-      <Tldraw shapeUtils={shapeUtils} onMount={handleMount} />
+      <Tldraw
+        persistenceKey="tablero-de-jaime-v2"
+        shapeUtils={shapeUtils}
+        onMount={handleMount}
+        licenseKey={TLDRAW_LICENSE_KEY ? TLDRAW_LICENSE_KEY : undefined}
+      />
       <div
         style={{
           position: 'fixed',
@@ -197,7 +187,6 @@ export default function App() {
         ) : (
           <span style={{ fontSize: 12, color: '#999' }}>Outlook: falta el Client ID</span>
         )}
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#555' }}>{diag}</span>
       </div>
       {debugError ? (
         <div
