@@ -177,17 +177,48 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
         <span>{kind}</span>
         {linked ? <span title="Guardado en el servicio enlazado">☁ {serviceName}</span> : null}
       </div>
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          textDecoration: done ? 'line-through' : 'none',
-          color: done ? '#888' : '#111',
-        }}
-      >
-        {title}
-      </div>
-      {body ? <div style={{ fontSize: 13, color: '#444' }}>{body}</div> : null}
+      {isEditing ? (
+        <input
+          value={title}
+          onChange={(e) => patch({ title: e.target.value })}
+          placeholder="Título"
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '2px 4px',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            textDecoration: done ? 'line-through' : 'none',
+            color: done ? '#888' : '#111',
+          }}
+        >
+          {title}
+        </div>
+      )}
+      {isEditing ? (
+        <textarea
+          value={body}
+          onChange={(e) => patch({ body: e.target.value })}
+          placeholder="Escribe aquí…"
+          rows={3}
+          style={{
+            fontSize: 13,
+            width: '100%',
+            boxSizing: 'border-box',
+            resize: 'none',
+            padding: '2px 4px',
+          }}
+        />
+      ) : body ? (
+        <div style={{ fontSize: 13, color: '#444' }}>{body}</div>
+      ) : null}
 
       {kind === 'cita' && !isEditing ? (
         <div style={{ fontSize: 13, color: '#333' }}>🗓 {formatWhen(startAt)}</div>
