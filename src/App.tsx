@@ -6,6 +6,7 @@ import { UniversalCardUtil } from './UniversalCard'
 import type { UniversalCardShapeProps } from './UniversalCard'
 import { getAccount, getToken, getTokenSilent, isConfigured, signIn, signOut } from './auth'
 import { fetchUpcomingEvents } from './graph'
+import { fitCardSize } from './fit'
 import { syncCalendarEvents } from './sync'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
@@ -15,19 +16,20 @@ function createCard(editor: Editor, kind: string, title: string) {
   const bounds = editor.getViewportPageBounds()
   const jitter = Math.random() * 60 - 30
   const base: UniversalCardShapeProps = {
-    w: 260,
-    h: 200,
+    w: 212,
+    h: 120,
     kind,
     title,
     body: '',
     done: false,
   }
+  const { w, h } = fitCardSize(base)
   editor.createShape({
     id: createShapeId(),
     type: 'universal-card',
-    x: bounds.center.x - 130 + jitter,
-    y: bounds.center.y - 100 + jitter,
-    props: base,
+    x: bounds.center.x - w / 2 + jitter,
+    y: bounds.center.y - h / 2 + jitter,
+    props: { ...base, w, h },
   })
 }
 
@@ -134,33 +136,35 @@ export default function App() {
     // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
     // mostrar que los objetos son datos vivos, no dibujos.
     if (editor.getCurrentPageShapes().length === 0) {
+      const demo1: UniversalCardShapeProps = {
+        w: 212,
+        h: 120,
+        kind: 'todo',
+        title: 'Probar el tablero en la Chromebook',
+        body: 'Doble toque en la tarjeta para interactuar con ella.',
+        done: false,
+      }
       editor.createShape({
         id: createShapeId(),
         type: 'universal-card',
         x: 120,
         y: 120,
-        props: {
-          w: 260,
-          h: 200,
-          kind: 'todo',
-          title: 'Probar el tablero en la Chromebook',
-          body: 'Doble toque en la tarjeta para interactuar con ella.',
-          done: false,
-        },
+        props: { ...demo1, ...fitCardSize(demo1) },
       })
+      const demo2: UniversalCardShapeProps = {
+        w: 212,
+        h: 120,
+        kind: 'nota',
+        title: 'Las tarjetas son objetos',
+        body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
+        done: false,
+      }
       editor.createShape({
         id: createShapeId(),
         type: 'universal-card',
-        x: 440,
+        x: 380,
         y: 120,
-        props: {
-          w: 260,
-          h: 200,
-          kind: 'nota',
-          title: 'Las tarjetas son objetos',
-          body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
-          done: false,
-        },
+        props: { ...demo2, ...fitCardSize(demo2) },
       })
     }
   }, [])

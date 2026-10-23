@@ -1,5 +1,6 @@
 import { createShapeId, type Editor } from 'tldraw'
 import type { UniversalCardShape, UniversalCardShapeProps } from './UniversalCard'
+import { fitCardSize } from './fit'
 import type { CalendarEventItem } from './graph'
 
 /** "2026-10-25T10:30:00.0000000" → "2026-10-25T10:30" (formato datetime-local). */
@@ -62,6 +63,7 @@ export function syncCalendarEvents(
   }
 
   let created = 0
+  let nextY = startY
   const nowLocal = torontoNowLocal()
   for (const event of events) {
     const title = event.subject?.trim() || 'Sin título'
@@ -86,9 +88,9 @@ export function syncCalendarEvents(
       }
       continue
     }
-    const props: UniversalCardShapeProps = {
-      w: 280,
-      h: 230,
+    const baseProps: UniversalCardShapeProps = {
+      w: 252,
+      h: 160,
       kind: 'cita',
       title,
       body: event.location?.displayName ?? '',
@@ -97,13 +99,15 @@ export function syncCalendarEvents(
       startAt,
       endAt,
     }
+    const { w, h } = fitCardSize(baseProps)
     editor.createShape({
       id: createShapeId(),
       type: 'universal-card',
       x: columnX,
-      y: startY + created * 250,
-      props,
+      y: nextY,
+      props: { ...baseProps, w, h },
     })
+    nextY += h + 20
     created++
   }
   return created

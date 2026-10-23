@@ -11,6 +11,7 @@ import {
 import type { RecordProps, TLBaseShape, TLResizeInfo } from 'tldraw'
 import { getAccount, getToken, isConfigured } from './auth'
 import { SCOPES } from './config'
+import { fitCardSize } from './fit'
 import { createCalendarEvent, createOneNotePage, createTodoTask, setTodoTaskDone } from './graph'
 
 // ---------------------------------------------------------------------------
@@ -129,6 +130,18 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
       props,
     })
   }
+
+  // La tarjeta siempre al tamaño mínimo que pide su texto (pantalla
+  // chica de la Chromebook). Al editar no se toca: el interior se
+  // desplaza y el ajuste se aplica al salir de la edición.
+  useEffect(() => {
+    if (isEditing) return
+    const { w, h } = fitCardSize(shape.props)
+    if (Math.abs(w - shape.props.w) > 2 || Math.abs(h - shape.props.h) > 2) {
+      patch({ w, h })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, shape.props.title, shape.props.body, shape.props.kind, shape.props.startAt, shape.props.endAt])
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
