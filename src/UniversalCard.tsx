@@ -289,6 +289,12 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
 export class UniversalCardUtil extends ShapeUtil<UniversalCardShape> {
   static override type = 'universal-card' as const
 
+  // Sin esto, el doble clic NO entra a editar la tarjeta: tldraw lo trata
+  // como gesto genérico y crea un texto independiente sobre el lienzo.
+  override canEdit() {
+    return true
+  }
+
   static override props: RecordProps<UniversalCardShape> = {
     w: T.number,
     h: T.number,

@@ -128,6 +128,7 @@ export default function App() {
         shapeUtils={shapeUtils}
         onMount={handleMount}
         licenseKey={TLDRAW_LICENSE_KEY ? TLDRAW_LICENSE_KEY : undefined}
+        options={{ createTextOnCanvasDoubleClick: false }}
       />
       <div
         style={{
