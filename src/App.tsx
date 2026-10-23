@@ -4,7 +4,7 @@ import type { AccountInfo } from '@azure/msal-browser'
 import 'tldraw/tldraw.css'
 import { UniversalCardUtil } from './UniversalCard'
 import type { UniversalCardShapeProps } from './UniversalCard'
-import { getAccount, isConfigured, signIn, signOut } from './auth'
+import { isConfigured, signIn, signOut } from './auth'
 
 const shapeUtils = [UniversalCardUtil]
 
@@ -47,11 +47,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (isConfigured()) {
-      getAccount()
-        .then(setAccount)
-        .catch(() => setAccount(null))
-    }
+    // DIAGNÓSTICO: arranque de MSAL deshabilitado temporalmente para
+    // aislar el bug que desmonta el editor segundos después de cargar.
+    // if (isConfigured()) {
+    //   getAccount()
+    //     .then(setAccount)
+    //     .catch(() => setAccount(null))
+    // }
   }, [])
 
   const handleSignIn = async () => {
