@@ -73,6 +73,8 @@ export default function App() {
         shapeUtils={shapeUtils}
         onMount={(editor) => {
           editorRef.current = editor
+          // El tablero siempre en modo claro, sin importar el tema del sistema
+          editor.user.updateUserPreferences({ colorScheme: 'light' })
           // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
           // mostrar que los objetos son datos vivos, no dibujos.
           if (editor.getCurrentPageShapes().length === 0) {
