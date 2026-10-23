@@ -1,4 +1,4 @@
-import { InteractionRequiredAuthError, PublicClientApplication } from '@azure/msal-browser'
+import { PublicClientApplication } from '@azure/msal-browser'
 import type { AccountInfo } from '@azure/msal-browser'
 import { ALL_SCOPES, MSAL_AUTHORITY, MSAL_CLIENT_ID } from './config'
 
@@ -18,6 +18,12 @@ async function getMsal(): Promise<PublicClientApplication> {
         redirectUri: window.location.origin + window.location.pathname,
       },
       cache: { cacheLocation: 'localStorage' },
+      system: {
+        // Más paciencia para la renovación silenciosa del token: en la
+        // Chromebook el iframe oculto de Microsoft a veces tarda y MSAL
+        // abortaba con "timed_out" a los pocos segundos.
+        iframeHashTimeout: 15000,
+      },
     })
     await pca.initialize()
     // Flujo por redirección: al volver de Microsoft, aquí se completa el
@@ -45,6 +51,9 @@ function friendlyAuthError(e: unknown): Error {
     return new Error(
       'Hay un inicio de sesión atascado en esta pestaña. Ciérrala por completo, vuelve a abrir el tablero e inténtalo de nuevo.',
     )
+  }
+  if (msg.includes('timed_out') || msg.includes('monitor_window_timeout')) {
+    return new Error('Microsoft tardó demasiado en responder. Inténtalo de nuevo.')
   }
   return e instanceof Error ? e : new Error(msg)
 }
@@ -81,16 +90,18 @@ export async function getToken(scopes: string[]): Promise<string> {
     const silent = await instance.acquireTokenSilent({ scopes, account })
     return silent.accessToken
   } catch (error) {
-    if (error instanceof InteractionRequiredAuthError) {
-      // Falta consentimiento: redirige y, al volver, hay que reintentar
-      // la acción (el token ya saldrá en silencio).
-      try {
-        await instance.acquireTokenRedirect({ scopes })
-      } catch (e) {
-        throw friendlyAuthError(e)
-      }
-      throw new Error('Redirigiendo a Microsoft para autorizar…')
+    // CUALQUIER fallo en silencio (falta de consentimiento, timed_out del
+    // iframe oculto, red lenta…) cae al flujo de página completa, que es
+    // el que funciona de forma confiable en la Chromebook. Antes solo se
+    // caía con InteractionRequiredAuthError y errores como timed_out
+    // dejaban el botón muerto.
+    const msg = error instanceof Error ? error.message : String(error)
+    if (msg.includes('interaction_in_progress')) throw friendlyAuthError(error)
+    try {
+      await instance.acquireTokenRedirect({ scopes })
+    } catch (e) {
+      throw friendlyAuthError(e)
     }
-    throw friendlyAuthError(error)
+    throw new Error('Redirigiendo a Microsoft para autorizar…')
   }
 }

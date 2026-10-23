@@ -232,7 +232,10 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
         padding: 12,
         boxSizing: 'border-box',
         fontFamily: 'sans-serif',
-        overflow: 'hidden',
+        // Al editar, el contenido puede desplazarse dentro de la tarjeta:
+        // así el botón de crear/guardar siempre se alcanza, aunque haya un
+        // mensaje de error ocupando espacio arriba.
+        overflow: isEditing ? 'auto' : 'hidden',
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
