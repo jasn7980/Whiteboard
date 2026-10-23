@@ -81,6 +81,44 @@ export async function setTodoTaskDone(
 
 // --- Outlook Calendar -------------------------------------------------------
 
+export type CalendarEventItem = {
+  id: string
+  subject?: string
+  isAllDay?: boolean
+  start: { dateTime: string }
+  end: { dateTime: string }
+  location?: { displayName?: string }
+}
+
+/**
+ * Eventos en la ventana del tablero: desde hace 7 días (los que acaban
+ * de pasar se quedan una semana más, marcados con palomita) hasta
+ * dentro de 14 días. Vista de calendario (expande los recurrentes),
+ * en hora local de Toronto, ordenados.
+ */
+export async function fetchUpcomingEvents(
+  token: string,
+  pastDays = 7,
+  futureDays = 14,
+): Promise<CalendarEventItem[]> {
+  const now = Date.now()
+  const from = new Date(now - pastDays * 24 * 60 * 60 * 1000)
+  const until = new Date(now + futureDays * 24 * 60 * 60 * 1000)
+  const params = new URLSearchParams({
+    startDateTime: from.toISOString(),
+    endDateTime: until.toISOString(),
+    $select: 'subject,start,end,location,isAllDay',
+    $orderby: 'start/dateTime',
+    $top: '100',
+  })
+  const result = await graph<{ value: CalendarEventItem[] }>(
+    token,
+    `/me/calendarview?${params.toString()}`,
+    { headers: { Prefer: `outlook.timezone="${TIME_ZONE}"` } },
+  )
+  return result.value
+}
+
 export async function createCalendarEvent(
   token: string,
   subject: string,

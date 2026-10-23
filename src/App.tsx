@@ -4,8 +4,10 @@ import type { AccountInfo } from '@azure/msal-browser'
 import 'tldraw/tldraw.css'
 import { UniversalCardUtil } from './UniversalCard'
 import type { UniversalCardShapeProps } from './UniversalCard'
-import { getAccount, isConfigured, signIn, signOut } from './auth'
-import { TLDRAW_LICENSE_KEY } from './config'
+import { getAccount, getToken, getTokenSilent, isConfigured, signIn, signOut } from './auth'
+import { fetchUpcomingEvents } from './graph'
+import { syncCalendarEvents } from './sync'
+import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
 
@@ -31,8 +33,11 @@ function createCard(editor: Editor, kind: string, title: string) {
 
 export default function App() {
   const editorRef = useRef<Editor | null>(null)
+  const autoSyncedRef = useRef(false)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
+  const [syncBusy, setSyncBusy] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [debugError, setDebugError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -47,13 +52,55 @@ export default function App() {
     }
   }, [])
 
+  /**
+   * Importa las citas de Outlook (2 semanas, más la semana pasada con palomita) como tarjetas enlazadas.
+   * En modo automático solo usa el token en silencio: si no se puede,
+   * no hace nada (nunca redirige al abrir el tablero).
+   */
+  const runSync = useCallback(async (manual: boolean) => {
+    const editor = editorRef.current
+    if (!editor) return
+    setSyncBusy(true)
+    try {
+      const token = manual
+        ? await getToken(SCOPES.calendar)
+        : await getTokenSilent(SCOPES.calendar)
+      if (!token) return
+      const events = await fetchUpcomingEvents(token)
+      const created = syncCalendarEvents(editor, events)
+      if (manual || created > 0) {
+        setSyncMsg(
+          created > 0
+            ? `✓ ${created} cita${created === 1 ? '' : 's'} nueva${created === 1 ? '' : 's'} de Outlook`
+            : '✓ Calendario al día',
+        )
+        window.setTimeout(() => setSyncMsg(null), 6000)
+      }
+    } catch (e) {
+      if (manual) {
+        setSyncMsg(
+          'No se pudieron traer las citas: ' +
+            (e instanceof Error ? e.message : String(e)),
+        )
+      }
+    } finally {
+      setSyncBusy(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (isConfigured()) {
       getAccount()
-        .then(setAccount)
+        .then((acc) => {
+          setAccount(acc)
+          if (acc && editorRef.current && !autoSyncedRef.current) {
+            autoSyncedRef.current = true
+            void runSync(false)
+          }
+        })
         .catch(() => setAccount(null))
     }
-  }, [])
+  }, [runSync])
 
   const handleSignIn = async () => {
     setAuthBusy(true)
@@ -71,6 +118,17 @@ export default function App() {
 
   const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor
+    // Si la cuenta ya se resolvió antes de montar el editor, sincroniza ahora.
+    if (!autoSyncedRef.current) {
+      getAccount()
+        .then((acc) => {
+          if (acc && !autoSyncedRef.current) {
+            autoSyncedRef.current = true
+            void runSync(false)
+          }
+        })
+        .catch(() => undefined)
+    }
     // El tablero siempre en modo claro, sin importar el tema del sistema
     editor.user.updateUserPreferences({ colorScheme: 'light' })
     // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
@@ -176,6 +234,17 @@ export default function App() {
           account ? (
             <>
               <span style={{ fontSize: 12, color: '#333' }}>☁ {account.username}</span>
+              <button
+                style={barButton}
+                onClick={() => void runSync(true)}
+                disabled={syncBusy}
+                title="Traer tus citas de Outlook (2 semanas) como tarjetas"
+              >
+                {syncBusy ? 'Trayendo…' : '⇩ Citas'}
+              </button>
+              {syncMsg ? (
+                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260 }}>{syncMsg}</span>
+              ) : null}
               <button style={barButton} onClick={handleSignOut}>
                 Salir
               </button>

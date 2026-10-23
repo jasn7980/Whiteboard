@@ -71,6 +71,24 @@ export async function signIn(): Promise<void> {
   }
 }
 
+/**
+ * Solo en silencio: devuelve el token o null si no se puede obtener sin
+ * interacción (sin redirigir). Para sincronizaciones en segundo plano al
+ * abrir el tablero, que nunca deben secuestrar la página.
+ */
+export async function getTokenSilent(scopes: string[]): Promise<string | null> {
+  if (!isConfigured()) return null
+  const instance = await getMsal()
+  const account = instance.getActiveAccount() ?? instance.getAllAccounts()[0]
+  if (!account) return null
+  try {
+    const silent = await instance.acquireTokenSilent({ scopes, account })
+    return silent.accessToken
+  } catch {
+    return null
+  }
+}
+
 export async function signOut(): Promise<void> {
   const instance = await getMsal()
   const account = await getAccount()
