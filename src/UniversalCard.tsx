@@ -4,10 +4,11 @@ import {
   Rectangle2d,
   ShapeUtil,
   T,
+  resizeBox,
   useEditor,
   useIsEditing,
 } from 'tldraw'
-import type { RecordProps, TLBaseShape } from 'tldraw'
+import type { RecordProps, TLBaseShape, TLResizeInfo } from 'tldraw'
 import { getToken, isConfigured } from './auth'
 import { SCOPES } from './config'
 import { createCalendarEvent, createOneNotePage, createTodoTask, setTodoTaskDone } from './graph'
@@ -293,6 +294,12 @@ export class UniversalCardUtil extends ShapeUtil<UniversalCardShape> {
   // como gesto genérico y crea un texto independiente sobre el lienzo.
   override canEdit() {
     return true
+  }
+
+  // Sin esto, las esquinas de selección se ven pero el tamaño no cambia:
+  // hay que traducir el arrastre a los props w/h de la tarjeta.
+  override onResize(shape: UniversalCardShape, info: TLResizeInfo<UniversalCardShape>) {
+    return resizeBox(shape, info, { minWidth: 170, minHeight: 140 })
   }
 
   static override props: RecordProps<UniversalCardShape> = {
