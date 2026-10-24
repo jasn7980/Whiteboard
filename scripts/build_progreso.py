@@ -86,6 +86,8 @@ data = {
          "note": "Marca personal de maratón"},
         {"race": "Maratón Lala", "date": "2020", "time": "3:52",
          "note": "Segundo maratón más rápido"},
+        {"race": "Medio maratón ESPN", "date": "2019-05-05", "time": "1:36",
+         "note": "Marca personal de medio maratón"},
     ],
     "weekly": weeks,
     "intervalSessions": intervals,
