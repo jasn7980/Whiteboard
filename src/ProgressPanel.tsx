@@ -24,8 +24,6 @@ type ProgressData = {
   totals: { workouts: number; ottawa_km: number; petit_km: number }
 }
 
-const META_KEY = 'tablero-meta-carrera'
-
 function daysUntil(iso: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -88,13 +86,6 @@ function WeekBars({ data }: { data: ProgressData }) {
 export default function ProgressPanel() {
   const [data, setData] = useState<ProgressData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [meta, setMeta] = useState<string>(() => {
-    try {
-      return localStorage.getItem(META_KEY) || 'ottawa'
-    } catch {
-      return 'ottawa'
-    }
-  })
 
   useEffect(() => {
     fetch('progreso.json')
@@ -105,15 +96,6 @@ export default function ProgressPanel() {
       .then(setData)
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [])
-
-  const pick = (id: string) => {
-    setMeta(id)
-    try {
-      localStorage.setItem(META_KEY, id)
-    } catch {
-      /* sin almacenamiento: se ignora */
-    }
-  }
 
   if (error) {
     return (
@@ -126,7 +108,6 @@ export default function ProgressPanel() {
     return <div style={{ fontSize: 13, color: '#555', padding: 8 }}>Cargando tu progreso…</div>
   }
 
-  const race = data.goal.races.find((r) => r.id === meta) || data.goal.races[0]
   const recent = [...data.intervalSessions].reverse().slice(0, 12)
 
   return (
@@ -174,31 +155,36 @@ export default function ProgressPanel() {
       </div>
 
       <div>
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>¿Dónde buscas el 3:45?</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {data.goal.races.map((r) => (
-            <button
-              key={r.id}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => pick(r.id)}
-              style={{
-                flex: 1,
-                padding: '6px 4px',
-                fontSize: 12,
-                fontWeight: r.id === meta ? 700 : 400,
-                borderRadius: 8,
-                border: r.id === meta ? '2px solid #1565c0' : '1px solid #bbb',
-                background: r.id === meta ? '#e3f2fd' : '#fff',
-                cursor: 'pointer',
-              }}
-            >
-              {r.name}
-            </button>
-          ))}
-        </div>
-        <div style={{ color: '#333', marginTop: 4 }}>
-          {race.name}: {race.date} · faltan {daysUntil(race.date)} días
-          {race.note ? <div style={{ color: '#555', fontSize: 12 }}>{race.note}</div> : null}
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>Plan B: en dos pasos hacia el 3:45</div>
+        <div style={{ color: '#333' }}>Desde tu 3:54:51 de Petit Train:</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+          <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '6px 8px', background: '#fff' }}>
+            <div style={{ fontWeight: 700 }}>
+              1 · {data.goal.races[0].name} — {data.goal.races[0].date} · faltan{' '}
+              {daysUntil(data.goal.races[0].date)} días
+            </div>
+            <div style={{ color: '#555' }}>
+              Objetivo ~3:50 (bajar 5 minutos) · {data.goal.races[0].note}
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', color: '#888' }}>↓</div>
+          <div
+            style={{
+              border: '2px solid #1565c0',
+              borderRadius: 8,
+              padding: '6px 8px',
+              background: '#e3f2fd',
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>
+              2 · {data.goal.races[1].name} — {data.goal.races[1].date} · faltan{' '}
+              {daysUntil(data.goal.races[1].date)} días
+            </div>
+            <div style={{ color: '#333' }}>
+              Objetivo 3:45 (otros 5 minutos) · carrera plana, ideal para el remate
+            </div>
+            <div style={{ color: '#555', fontSize: 12 }}>{data.goal.races[1].note}</div>
+          </div>
         </div>
       </div>
 
