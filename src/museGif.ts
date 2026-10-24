@@ -2,6 +2,10 @@ import { createShapeId, type Editor, type TLAssetId, type TLShapeId } from 'tldr
 
 const ASSET_ID = 'asset:muse-gif' as TLAssetId
 const SHAPE_ID = createShapeId('muse-gif')
+// Ids fijos del GIF, para que la sincronización en la nube pueda
+// excluirlo: el GIF es por dispositivo y se vuelve a sembrar al abrir.
+export const MUSE_GIF_ASSET_ID = ASSET_ID
+export const MUSE_GIF_SHAPE_ID = SHAPE_ID
 const OFF_KEY = 'tablero-muse-gif'
 const DEFAULT_GIF = 'muse.gif'
 const POLL_MS = 180_000

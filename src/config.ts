@@ -13,6 +13,9 @@ export const SCOPES = {
   calendar: ['Calendars.ReadWrite'],
   tasks: ['Tasks.ReadWrite'],
   notes: ['Notes.Create'],
+  // Solo la carpeta propia de la app en OneDrive: el tablero no ve
+  // ni toca ningún otro archivo del usuario.
+  files: ['Files.ReadWrite.AppFolder'],
 }
 
 // Todos los permisos juntos al conectar: así Microsoft pide el
@@ -23,6 +26,7 @@ export const ALL_SCOPES = [
   ...SCOPES.calendar,
   ...SCOPES.tasks,
   ...SCOPES.notes,
+  ...SCOPES.files,
 ]
 
 export const TIME_ZONE = 'America/Toronto'

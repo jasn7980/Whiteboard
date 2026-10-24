@@ -9,6 +9,7 @@ import { fetchUpcomingEvents } from './graph'
 import { fitCardSize } from './fit'
 import { ensureMuseGif } from './museGif'
 import { syncCalendarEvents } from './sync'
+import { attachCloudSave, initCloudBoard, uploadBoardFile } from './onedrive'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
@@ -40,10 +41,14 @@ function createCard(editor: Editor, kind: string, title: string) {
 export default function App() {
   const editorRef = useRef<Editor | null>(null)
   const autoSyncedRef = useRef(false)
+  const cloudInitRef = useRef<Promise<boolean> | null>(null)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [syncBusy, setSyncBusy] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [cloudReady, setCloudReady] = useState(false)
+  const [cloudMsg, setCloudMsg] = useState<string | null>(null)
+  const [cloudBusy, setCloudBusy] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -66,6 +71,9 @@ export default function App() {
   const runSync = useCallback(async (manual: boolean) => {
     const editor = editorRef.current
     if (!editor) return
+    // Las citas importadas no deben caer antes de que la nube haya
+    // decidido qué tablero manda: si no, la carga la borraría.
+    if (cloudInitRef.current) await cloudInitRef.current
     setSyncBusy(true)
     try {
       const token = manual
@@ -122,58 +130,97 @@ export default function App() {
     }
   }
 
-  const handleMount = useCallback((editor: Editor) => {
-    editorRef.current = editor
-    // Muse presente en el tablero, con sus movimientos de siempre.
-    ensureMuseGif(editor)
-    // Si la cuenta ya se resolvió antes de montar el editor, sincroniza ahora.
-    if (!autoSyncedRef.current) {
-      getAccount()
-        .then((acc) => {
-          if (acc && !autoSyncedRef.current) {
-            autoSyncedRef.current = true
-            void runSync(false)
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      editorRef.current = editor
+      // El tablero siempre en modo claro, sin importar el tema del sistema
+      editor.user.updateUserPreferences({ colorScheme: 'light' })
+      // Primero la nube decide qué tablero manda (o deja el local si no
+      // hay sesión o permiso): solo después se siembra el GIF, las
+      // tarjetas de ejemplo y la importación de citas, para que la
+      // carga de la nube no las borre ni el GIF dispare su baja.
+      cloudInitRef.current = initCloudBoard(editor, () =>
+        getTokenSilent(SCOPES.files),
+      )
+      void cloudInitRef.current.then((ok) => {
+        if (ok) setCloudReady(true)
+        attachCloudSave(editor, () => getTokenSilent(SCOPES.files), () =>
+          setCloudReady(true),
+        )
+        // Muse presente en el tablero, con sus movimientos de siempre.
+        ensureMuseGif(editor)
+        // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
+        // mostrar que los objetos son datos vivos, no dibujos.
+        if (editor.getCurrentPageShapes().length === 0) {
+          const demo1: UniversalCardShapeProps = {
+            w: 212,
+            h: 120,
+            kind: 'todo',
+            title: 'Probar el tablero en la Chromebook',
+            body: 'Doble toque en la tarjeta para interactuar con ella.',
+            done: false,
           }
-        })
-        .catch(() => undefined)
-    }
-    // El tablero siempre en modo claro, sin importar el tema del sistema
-    editor.user.updateUserPreferences({ colorScheme: 'light' })
-    // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
-    // mostrar que los objetos son datos vivos, no dibujos.
-    if (editor.getCurrentPageShapes().length === 0) {
-      const demo1: UniversalCardShapeProps = {
-        w: 212,
-        h: 120,
-        kind: 'todo',
-        title: 'Probar el tablero en la Chromebook',
-        body: 'Doble toque en la tarjeta para interactuar con ella.',
-        done: false,
-      }
-      editor.createShape({
-        id: createShapeId(),
-        type: 'universal-card',
-        x: 120,
-        y: 120,
-        props: { ...demo1, ...fitCardSize(demo1) },
+          editor.createShape({
+            id: createShapeId(),
+            type: 'universal-card',
+            x: 120,
+            y: 120,
+            props: { ...demo1, ...fitCardSize(demo1) },
+          })
+          const demo2: UniversalCardShapeProps = {
+            w: 212,
+            h: 120,
+            kind: 'nota',
+            title: 'Las tarjetas son objetos',
+            body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
+            done: false,
+          }
+          editor.createShape({
+            id: createShapeId(),
+            type: 'universal-card',
+            x: 380,
+            y: 120,
+            props: { ...demo2, ...fitCardSize(demo2) },
+          })
+        }
+        // Si la cuenta ya se resolvió antes de montar el editor, sincroniza ahora.
+        if (!autoSyncedRef.current) {
+          getAccount()
+            .then((acc) => {
+              if (acc && !autoSyncedRef.current) {
+                autoSyncedRef.current = true
+                void runSync(false)
+              }
+            })
+            .catch(() => undefined)
+        }
       })
-      const demo2: UniversalCardShapeProps = {
-        w: 212,
-        h: 120,
-        kind: 'nota',
-        title: 'Las tarjetas son objetos',
-        body: 'Su comportamiento lo definen sus datos: cita, goal, idea, correo…',
-        done: false,
+    },
+    [runSync],
+  )
+
+  /** Guarda el tablero en OneDrive ahora mismo (pide el permiso si falta). */
+  const handleCloudSave = async () => {
+    const editor = editorRef.current
+    if (!editor) return
+    setCloudBusy(true)
+    try {
+      const token = await getToken(SCOPES.files)
+      await uploadBoardFile(token, editor)
+      setCloudReady(true)
+      setCloudMsg('✓ Guardado en OneDrive')
+      window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // Redirigir a Microsoft para autorizar no es un error: la página
+      // regresa ya conectada y la nube se activa sola.
+      if (!msg.includes('Redirigiendo')) {
+        setCloudMsg('No se pudo guardar en OneDrive: ' + msg)
       }
-      editor.createShape({
-        id: createShapeId(),
-        type: 'universal-card',
-        x: 380,
-        y: 120,
-        props: { ...demo2, ...fitCardSize(demo2) },
-      })
+    } finally {
+      setCloudBusy(false)
     }
-  }, [])
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -261,6 +308,20 @@ export default function App() {
               </button>
               {syncMsg ? (
                 <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260 }}>{syncMsg}</span>
+              ) : null}
+              <button
+                style={barButton}
+                onClick={() => void handleCloudSave()}
+                disabled={cloudBusy}
+                title="Guardar este tablero en OneDrive ahora (si falta el permiso, te pedirá autorizarlo)"
+              >
+                {cloudBusy ? 'Guardando…' : '⇧ Nube'}
+              </button>
+              <span style={{ fontSize: 12, color: cloudReady ? '#2e7d32' : '#999' }}>
+                {cloudReady ? '☁ OneDrive' : '○ este dispositivo'}
+              </span>
+              {cloudMsg ? (
+                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260 }}>{cloudMsg}</span>
               ) : null}
               <button style={barButton} onClick={handleSignOut}>
                 Salir
