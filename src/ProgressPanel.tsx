@@ -130,7 +130,17 @@ export default function ProgressPanel() {
   const recent = [...data.intervalSessions].reverse().slice(0, 12)
 
   return (
-    <div style={{ fontSize: 13, color: '#222', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div
+      style={{
+        fontSize: 13,
+        color: '#222',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        flex: 1,
+        minHeight: 0,
+      }}
+    >
       <div>
         <div style={{ fontSize: 15, fontWeight: 700 }}>🏃 Meta maratón: 3:45</div>
         <div style={{ color: '#555' }}>
@@ -192,7 +202,15 @@ export default function ProgressPanel() {
         </div>
       </div>
 
-      <div>
+      <div
+        style={{
+          flex: '1 1 auto',
+          minHeight: 0,
+          overflowY: 'auto',
+          touchAction: 'pan-y',
+          paddingRight: 2,
+        }}
+      >
         <div style={{ fontWeight: 700, marginBottom: 4 }}>
           Intervalos 2026 ({data.intervalSessions.length} sesiones · detalle completo)
         </div>

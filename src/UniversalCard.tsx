@@ -255,7 +255,14 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
           padding: 12,
           boxSizing: 'border-box',
           fontFamily: 'sans-serif',
-          overflowY: 'auto',
+          // Antes toda la tarjeta era un contenedor con scroll: en la
+          // Chromebook táctil el gesto del stylus/dedo lo tomaba el
+          // scroll en vez del arrastre y la tarjeta saltaba a la
+          // esquina superior izquierda. Ahora el arrastre manda en
+          // toda la tarjeta (touchAction none) y solo la lista de
+          // intervalos tiene su propio scroll interno.
+          touchAction: 'none',
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
@@ -272,9 +279,10 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
             letterSpacing: 1,
             textTransform: 'uppercase',
             color: '#666',
+            cursor: 'grab',
           }}
         >
-          <span>progreso</span>
+          <span>⠿ progreso — arrastra desde aquí</span>
           <span title="Datos de tus archivos de TrainingPeaks">☁ TrainingPeaks</span>
         </div>
         <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
