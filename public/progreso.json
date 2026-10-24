@@ -41,6 +41,20 @@
   "time": "1:51:34",
   "seconds": 6694.0
  },
+ "personalBests": [
+  {
+   "race": "Maratón Lala",
+   "date": "2019",
+   "time": "3:48",
+   "note": "Marca personal de maratón"
+  },
+  {
+   "race": "Maratón Lala",
+   "date": "2020",
+   "time": "3:52",
+   "note": "Segundo maratón más rápido"
+  }
+ ],
  "weekly": [
   {
    "week": "2026-W01",

@@ -81,6 +81,12 @@ data = {
     ],
     "half": {"race": "Montreal", "date": "2026-04-19", "time": "1:51:34",
              "seconds": hms("1:51:34")},
+    "personalBests": [
+        {"race": "Maratón Lala", "date": "2019", "time": "3:48",
+         "note": "Marca personal de maratón"},
+        {"race": "Maratón Lala", "date": "2020", "time": "3:52",
+         "note": "Segundo maratón más rápido"},
+    ],
     "weekly": weeks,
     "intervalSessions": intervals,
     "totals": {

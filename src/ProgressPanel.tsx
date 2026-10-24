@@ -14,6 +14,7 @@ type ProgressData = {
   goal: { time: string; pace: string; races: Race[] }
   marathons: { race: string; date: string; time: string; seconds: number; pace: string }[]
   half: { race: string; date: string; time: string }
+  personalBests: { race: string; date: string; time: string; note: string }[]
   weekly: { week: string; km: number; tss: number }[]
   intervalSessions: {
     fecha: string; bloque: string; nombre: string; km: string;
@@ -141,6 +142,9 @@ export default function ProgressPanel() {
         </div>
         <div style={{ color: '#555', marginTop: 4 }}>
           Ritmo: 5:41 → 5:34 /km · meta 5:20 /km · Medio maratón: {data.half.time} (Montreal, abr 2026)
+        </div>
+        <div style={{ color: '#333', marginTop: 4 }}>
+          ⭐ Tu mejor maratón: Lala 2019, 3:48 (Lala 2020: 3:52) · la meta 3:45 está a 3 minutos de tu marca
         </div>
       </div>
 
