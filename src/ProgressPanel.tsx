@@ -111,6 +111,7 @@ export default function ProgressPanel() {
   const recent = [...data.intervalSessions].reverse().slice(0, 12)
   const ottawaDays = daysUntil(data.goal.races[0].date)
   const chicagoDays = daysUntil(data.goal.races[1].date)
+  const verdunDays = daysUntil('2027-09-12')
 
   return (
     <div
@@ -187,6 +188,19 @@ export default function ProgressPanel() {
             </div>
             <div style={{ color: '#555', fontSize: 12 }}>{data.goal.races[1].note}</div>
           </div>
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 12,
+            color: '#555',
+            borderTop: '1px dashed #ccc',
+            paddingTop: 4,
+          }}
+        >
+          Si no sales en la rifa de Chicago (resultados 8 dic 2026), el plan pasa a:{' '}
+          <strong>Maratón BougeBouge Verdun — 12 sep 2027</strong> · faltan {verdunDays} días ·{' '}
+          {Math.floor(verdunDays / 7)} semanas · mismo objetivo 3:45
         </div>
       </div>
 
