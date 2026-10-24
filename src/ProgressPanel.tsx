@@ -109,6 +109,8 @@ export default function ProgressPanel() {
   }
 
   const recent = [...data.intervalSessions].reverse().slice(0, 12)
+  const ottawaDays = daysUntil(data.goal.races[0].date)
+  const chicagoDays = daysUntil(data.goal.races[1].date)
 
   return (
     <div
@@ -161,7 +163,7 @@ export default function ProgressPanel() {
           <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '6px 8px', background: '#fff' }}>
             <div style={{ fontWeight: 700 }}>
               1 · {data.goal.races[0].name} — {data.goal.races[0].date} · faltan{' '}
-              {daysUntil(data.goal.races[0].date)} días
+              {ottawaDays} días · <strong>{Math.floor(ottawaDays / 7)} semanas</strong>
             </div>
             <div style={{ color: '#555' }}>
               Objetivo ~3:50 (bajar 5 minutos) · {data.goal.races[0].note}
@@ -178,7 +180,7 @@ export default function ProgressPanel() {
           >
             <div style={{ fontWeight: 700 }}>
               2 · {data.goal.races[1].name} — {data.goal.races[1].date} · faltan{' '}
-              {daysUntil(data.goal.races[1].date)} días
+              {chicagoDays} días · <strong>{Math.floor(chicagoDays / 7)} semanas</strong>
             </div>
             <div style={{ color: '#333' }}>
               Objetivo 3:45 (otros 5 minutos) · carrera plana, ideal para el remate
