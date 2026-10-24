@@ -24,7 +24,10 @@ function createCard(editor: Editor, kind: string, title: string) {
     body: '',
     done: false,
   }
-  const { w, h } = fitCardSize(base)
+  // La tarjeta de progreso es un panel con gráficas: tamaño fijo grande,
+  // sin el auto-ajuste de texto de las demás tarjetas.
+  const { w, h } =
+    kind === 'progreso' ? { w: 360, h: 560 } : fitCardSize(base)
   editor.createShape({
     id: createShapeId(),
     type: 'universal-card',
@@ -223,6 +226,13 @@ export default function App() {
         </button>
         <button style={barButton} onClick={() => editorRef.current && createCard(editorRef.current, 'idea', 'Nueva idea')}>
           + Idea
+        </button>
+        <button
+          style={barButton}
+          title="Tu progreso de maratón 2026 hacia la meta 3:45, con gráficas e intervalos"
+          onClick={() => editorRef.current && createCard(editorRef.current, 'progreso', 'Mi progreso a 3:45')}
+        >
+          🏃 Progreso
         </button>
         <button
           style={barButton}

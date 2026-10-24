@@ -13,6 +13,7 @@ import { getAccount, getToken, isConfigured } from './auth'
 import { SCOPES } from './config'
 import { fitCardSize } from './fit'
 import { createCalendarEvent, createOneNotePage, createTodoTask, setTodoTaskDone } from './graph'
+import ProgressPanel from './ProgressPanel'
 
 // ---------------------------------------------------------------------------
 // La "tarjeta universal": UN solo tipo de objeto cuyo comportamiento lo
@@ -136,6 +137,9 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
   // desplaza y el ajuste se aplica al salir de la edición.
   useEffect(() => {
     if (isEditing) return
+    // La tarjeta de progreso guarda su propio tamaño: su contenido
+    // (gráficas, lista de intervalos) no cabe en el auto-ajuste de texto.
+    if (shape.props.kind === 'progreso') return
     const { w, h } = fitCardSize(shape.props)
     if (Math.abs(w - shape.props.w) > 2 || Math.abs(h - shape.props.h) > 2) {
       patch({ w, h })
@@ -231,7 +235,53 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
         ? '#e8fde8'
         : kind === 'idea'
           ? '#f3e8fd'
-          : '#e8f4fd'
+          : kind === 'progreso'
+            ? '#fff3e0'
+            : '#e8f4fd'
+
+  // La tarjeta de progreso es un panel vivo (gráficas, botones, lista):
+  // necesita recibir clics también fuera de edición. El encabezado deja
+  // pasar el gesto para poder arrastrar la tarjeta desde ahí.
+  if (kind === 'progreso' && !isEditing) {
+    return (
+      <HTMLContainer
+        style={{
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'all',
+          backgroundColor: bg,
+          border: '2px solid #333',
+          borderRadius: 12,
+          padding: 12,
+          boxSizing: 'border-box',
+          fontFamily: 'sans-serif',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        <div
+          style={{
+            pointerEvents: 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            color: '#666',
+          }}
+        >
+          <span>progreso</span>
+          <span title="Datos de tus archivos de TrainingPeaks">☁ TrainingPeaks</span>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
+        <ProgressPanel />
+      </HTMLContainer>
+    )
+  }
 
   return (
     <HTMLContainer

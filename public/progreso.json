@@ -1,0 +1,713 @@
+{
+ "updated": "2026-10-24",
+ "goal": {
+  "time": "3:45:00",
+  "seconds": 13500,
+  "pace": "5:20",
+  "races": [
+   {
+    "id": "ottawa",
+    "name": "Ottawa 2027",
+    "date": "2027-05-30",
+    "note": "Tamarack Ottawa Race Weekend"
+   },
+   {
+    "id": "chicago",
+    "name": "Chicago 2027",
+    "date": "2027-10-10",
+    "note": "Sorteo cierra 29 oct 2026, 2 PM CT; resultados 8 dic 2026"
+   }
+  ]
+ },
+ "marathons": [
+  {
+   "race": "Ottawa",
+   "date": "2026-05-24",
+   "time": "4:00:23",
+   "seconds": 14423.0,
+   "pace": "5:41"
+  },
+  {
+   "race": "Petit Train du Nord",
+   "date": "2026-10-04",
+   "time": "3:55:00",
+   "seconds": 14100.0,
+   "pace": "5:34"
+  }
+ ],
+ "half": {
+  "race": "Montreal",
+  "date": "2026-04-19",
+  "time": "1:51:34",
+  "seconds": 6694.0
+ },
+ "weekly": [
+  {
+   "week": "2026-W01",
+   "km": 21.8,
+   "tss": 102
+  },
+  {
+   "week": "2026-W02",
+   "km": 27.1,
+   "tss": 138
+  },
+  {
+   "week": "2026-W03",
+   "km": 27.9,
+   "tss": 153
+  },
+  {
+   "week": "2026-W04",
+   "km": 37.7,
+   "tss": 189
+  },
+  {
+   "week": "2026-W05",
+   "km": 43.0,
+   "tss": 225
+  },
+  {
+   "week": "2026-W06",
+   "km": 42.4,
+   "tss": 248
+  },
+  {
+   "week": "2026-W07",
+   "km": 36.8,
+   "tss": 176
+  },
+  {
+   "week": "2026-W08",
+   "km": 43.4,
+   "tss": 215
+  },
+  {
+   "week": "2026-W09",
+   "km": 44.7,
+   "tss": 218
+  },
+  {
+   "week": "2026-W10",
+   "km": 42.2,
+   "tss": 211
+  },
+  {
+   "week": "2026-W11",
+   "km": 51.7,
+   "tss": 253
+  },
+  {
+   "week": "2026-W12",
+   "km": 44.3,
+   "tss": 211
+  },
+  {
+   "week": "2026-W13",
+   "km": 53.2,
+   "tss": 257
+  },
+  {
+   "week": "2026-W14",
+   "km": 51.2,
+   "tss": 224
+  },
+  {
+   "week": "2026-W15",
+   "km": 44.8,
+   "tss": 197
+  },
+  {
+   "week": "2026-W16",
+   "km": 34.1,
+   "tss": 165
+  },
+  {
+   "week": "2026-W17",
+   "km": 51.6,
+   "tss": 242
+  },
+  {
+   "week": "2026-W18",
+   "km": 79.2,
+   "tss": 380
+  },
+  {
+   "week": "2026-W19",
+   "km": 60.3,
+   "tss": 291
+  },
+  {
+   "week": "2026-W20",
+   "km": 33.5,
+   "tss": 166
+  },
+  {
+   "week": "2026-W21",
+   "km": 59.8,
+   "tss": 294
+  },
+  {
+   "week": "2026-W22",
+   "km": 15.7,
+   "tss": 74
+  },
+  {
+   "week": "2026-W23",
+   "km": 27.6,
+   "tss": 134
+  },
+  {
+   "week": "2026-W24",
+   "km": 32.3,
+   "tss": 154
+  },
+  {
+   "week": "2026-W25",
+   "km": 43.3,
+   "tss": 272
+  },
+  {
+   "week": "2026-W26",
+   "km": 40.6,
+   "tss": 176
+  },
+  {
+   "week": "2026-W27",
+   "km": 47.5,
+   "tss": 260
+  },
+  {
+   "week": "2026-W28",
+   "km": 52.0,
+   "tss": 244
+  },
+  {
+   "week": "2026-W29",
+   "km": 46.4,
+   "tss": 229
+  },
+  {
+   "week": "2026-W30",
+   "km": 49.1,
+   "tss": 225
+  },
+  {
+   "week": "2026-W31",
+   "km": 45.6,
+   "tss": 210
+  },
+  {
+   "week": "2026-W32",
+   "km": 59.8,
+   "tss": 275
+  },
+  {
+   "week": "2026-W33",
+   "km": 58.8,
+   "tss": 277
+  },
+  {
+   "week": "2026-W34",
+   "km": 57.2,
+   "tss": 261
+  },
+  {
+   "week": "2026-W35",
+   "km": 52.9,
+   "tss": 258
+  },
+  {
+   "week": "2026-W36",
+   "km": 54.4,
+   "tss": 234
+  },
+  {
+   "week": "2026-W37",
+   "km": 60.6,
+   "tss": 284
+  },
+  {
+   "week": "2026-W38",
+   "km": 46.7,
+   "tss": 207
+  },
+  {
+   "week": "2026-W39",
+   "km": 43.0,
+   "tss": 196
+  },
+  {
+   "week": "2026-W40",
+   "km": 55.1,
+   "tss": 300
+  }
+ ],
+ "intervalSessions": [
+  {
+   "fecha": "2026-01-02",
+   "bloque": "Ottawa",
+   "nombre": "Persecuciones",
+   "km": "9.61",
+   "duracion": "1:02:55",
+   "ritmo": "06:33",
+   "tss": "49",
+   "instrucciones": "Trote 2k; 4k persecuciones z3 (relevos 500 m); 2k ritmo propio; calma. Alt: fartlek."
+  },
+  {
+   "fecha": "2026-01-11",
+   "bloque": "Ottawa",
+   "nombre": "Al 85% del umbral",
+   "km": "11.3",
+   "duracion": "1:22:08",
+   "ritmo": "07:16",
+   "tss": "57",
+   "instrucciones": "Descarga; FC ≤85% umbral."
+  },
+  {
+   "fecha": "2026-01-14",
+   "bloque": "Ottawa",
+   "nombre": "6k Tempo Bajo",
+   "km": "5.19",
+   "duracion": "0:38:25",
+   "ritmo": "07:24",
+   "tss": "26",
+   "instrucciones": "1k caminata→trote; 6k aeróbico 88% umbral; 1k calma."
+  },
+  {
+   "fecha": "2026-01-16",
+   "bloque": "Ottawa",
+   "nombre": "LT2 - Subumbral",
+   "km": "11.0",
+   "duracion": "1:08:29",
+   "ritmo": "06:14",
+   "tss": "66",
+   "instrucciones": "Principal bajo umbral (98%): 15 min @126; 50 min @163 (z4); 10 min @126."
+  },
+  {
+   "fecha": "2026-01-22",
+   "bloque": "Ottawa",
+   "nombre": "4x1k @ 90%",
+   "km": "9.02",
+   "duracion": "1:02:27",
+   "ritmo": "06:55",
+   "tss": "53",
+   "instrucciones": "2k trote; 5x1k al 98-102% umbral + 400 m trote; calma."
+  },
+  {
+   "fecha": "2026-01-25",
+   "bloque": "Ottawa",
+   "nombre": "13k continuo bajo",
+   "km": "14.3",
+   "duracion": "1:35:10",
+   "ritmo": "06:38",
+   "tss": "67",
+   "instrucciones": "70-80% umbral FC."
+  },
+  {
+   "fecha": "2026-01-30",
+   "bloque": "Ottawa",
+   "nombre": "105% umbral",
+   "km": "11.0",
+   "duracion": "1:14:00",
+   "ritmo": "06:43",
+   "tss": "62",
+   "instrucciones": "20 min 65%; 5 pasos; 6×(3 min 105% × 2 min 80%); 10 min 85%; 5 min calma."
+  },
+  {
+   "fecha": "2026-01-31",
+   "bloque": "Ottawa",
+   "nombre": "Intervalos de tempos medios (88%-92%)",
+   "km": "7.15",
+   "duracion": "0:47:15",
+   "ritmo": "06:36",
+   "tss": "37",
+   "instrucciones": "Intervalos tempo 88-92% umbral."
+  },
+  {
+   "fecha": "2026-02-05",
+   "bloque": "Ottawa",
+   "nombre": "Fartlek a paso de 5k",
+   "km": "8.14",
+   "duracion": "0:51:13",
+   "ritmo": "06:18",
+   "tss": "37",
+   "instrucciones": "10 min trote; 1-2 min a paso 5k (90-95% FC) × 3 min trote, 30 min; 5 min trote."
+  },
+  {
+   "fecha": "2026-02-13",
+   "bloque": "Ottawa",
+   "nombre": "6x600 al 95% del umbral",
+   "km": "8.58",
+   "duracion": "0:58:45",
+   "ritmo": "06:51",
+   "tss": "42",
+   "instrucciones": "6×600 m al 95% umbral FC + 400 m descanso activo; 2k calma."
+  },
+  {
+   "fecha": "2026-02-14",
+   "bloque": "Ottawa",
+   "nombre": "Short Speed Wk",
+   "km": "6.33",
+   "duracion": "0:41:47",
+   "ritmo": "06:36",
+   "tss": "30",
+   "instrucciones": "4×(2 min @04:29-04:37 + 1 min @04:10-04:29 + rec.)."
+  },
+  {
+   "fecha": "2026-02-20",
+   "bloque": "Ottawa",
+   "nombre": "Variaciones - Una hora",
+   "km": "10.3",
+   "duracion": "1:09:38",
+   "ritmo": "06:47",
+   "tss": "51",
+   "instrucciones": "3×(5 min @160-166 + 1 min @168-171 + fácil)."
+  },
+  {
+   "fecha": "2026-02-22",
+   "bloque": "Ottawa",
+   "nombre": "1.5 hr - 80%",
+   "km": "15.9",
+   "duracion": "1:44:50",
+   "ritmo": "06:36",
+   "tss": "78",
+   "instrucciones": "1:15:00 al 83-88% umbral FC."
+  },
+  {
+   "fecha": "2026-02-27",
+   "bloque": "Ottawa",
+   "nombre": "Mix de Intervalos y reps",
+   "km": "11.0",
+   "duracion": "1:17:03",
+   "ritmo": "07:01",
+   "tss": "55",
+   "instrucciones": "2×8 min 80% (desc. 4 min 60%); 6×2 min 90% (desc. 1 min 70%)."
+  },
+  {
+   "fecha": "2026-03-01",
+   "bloque": "Ottawa",
+   "nombre": "UAn xX1km",
+   "km": "15.7",
+   "duracion": "1:47:40",
+   "ritmo": "06:53",
+   "tss": "75",
+   "instrucciones": "9×1 km al 80-84% FCmax + trote activo. *Ritmo máx 02:53 posible anomalía GPS."
+  },
+  {
+   "fecha": "2026-03-03",
+   "bloque": "Ottawa",
+   "nombre": "10x10 x 3",
+   "km": "11.0",
+   "duracion": "1:13:28",
+   "ritmo": "06:40",
+   "tss": "56",
+   "instrucciones": "3×(10 min 95% @160-165 + 10 min z2 @138-148)."
+  },
+  {
+   "fecha": "2026-03-22",
+   "bloque": "Ottawa",
+   "nombre": "Trabajo de velocidad",
+   "km": "12.7",
+   "duracion": "1:32:01",
+   "ritmo": "07:14",
+   "tss": "65",
+   "instrucciones": "3×6 min 85% (desc. 2 min); 6×3 min 90% (desc. 4 min)."
+  },
+  {
+   "fecha": "2026-04-09",
+   "bloque": "Ottawa",
+   "nombre": "Half M Práctica",
+   "km": "14.1",
+   "duracion": "1:21:58",
+   "ritmo": "05:48",
+   "tss": "64",
+   "instrucciones": "5×(5 min @05:01-05:15 + 4 min paso MM @04:43-05:01 + 1 min @05:38-06:25)."
+  },
+  {
+   "fecha": "2026-04-12",
+   "bloque": "Ottawa",
+   "nombre": "Sensación Medio Maratón",
+   "km": "13.4",
+   "duracion": "1:18:23",
+   "ritmo": "05:50",
+   "tss": "53",
+   "instrucciones": "6×(8 min @04:43-05:01 + 2 min @05:46-06:09)."
+  },
+  {
+   "fecha": "2026-04-26",
+   "bloque": "Ottawa",
+   "nombre": "Goal Pace (maratón)",
+   "km": "22.5",
+   "duracion": "2:25:11",
+   "ritmo": "06:27",
+   "tss": "101",
+   "instrucciones": "6×(12 min Goal Pace M @156-161 + 6 min Easy @126-143)."
+  },
+  {
+   "fecha": "2026-06-03",
+   "bloque": "Petit Train",
+   "nombre": "Tempo al 88%",
+   "km": "10.1",
+   "duracion": "1:05:11",
+   "ritmo": "06:27",
+   "tss": "51",
+   "instrucciones": "Tempo bajo al 75% esfuerzo; calentar 10 min; 50 min al 88% parejo; 10 min trote-caminata."
+  },
+  {
+   "fecha": "2026-06-06",
+   "bloque": "Petit Train",
+   "nombre": "6k Tempo Bajo",
+   "km": "8.05",
+   "duracion": "0:49:23",
+   "ritmo": "06:08",
+   "tss": "35",
+   "instrucciones": "1k caminata→trote; 6k aeróbico al 88% del umbral; 1k trote→caminata."
+  },
+  {
+   "fecha": "2026-06-08",
+   "bloque": "Petit Train",
+   "nombre": "1-1-2-1-1",
+   "km": "6.02",
+   "duracion": "0:43:49",
+   "ritmo": "07:17",
+   "tss": "29",
+   "instrucciones": "Calentar articulaciones; los 1s calentar/enfriar, los 2 tempo medio-alto."
+  },
+  {
+   "fecha": "2026-06-14",
+   "bloque": "Petit Train",
+   "nombre": "Escalera más tempo sostenido al 88%",
+   "km": "11.6",
+   "duracion": "1:09:55",
+   "ritmo": "06:02",
+   "tss": "57",
+   "instrucciones": "15 min trote; 10 min subir cada 2 min hasta 88% FCMax sostener 20 min; bajar a 60% 10 min."
+  },
+  {
+   "fecha": "2026-06-20",
+   "bloque": "Petit Train",
+   "nombre": "Fartlek por sensaciones",
+   "km": "8.79",
+   "duracion": "0:59:14",
+   "ritmo": "06:44",
+   "tss": "115",
+   "instrucciones": "Subir/bajar velocidad por sensaciones por todas las zonas de FC."
+  },
+  {
+   "fecha": "2026-06-21",
+   "bloque": "Petit Train",
+   "nombre": "11k TEMPO medio/alto",
+   "km": "11.0",
+   "duracion": "1:04:26",
+   "ritmo": "05:53",
+   "tss": "48",
+   "instrucciones": "TEMPO medio/alto muy estable; 2 km vuelta a la calma."
+  },
+  {
+   "fecha": "2026-06-26",
+   "bloque": "Petit Train",
+   "nombre": "1:3 (esfuerzo alto x bajo)",
+   "km": "10.1",
+   "duracion": "1:04:58",
+   "ritmo": "06:26",
+   "tss": "45",
+   "instrucciones": "10 min trote; 5 min z3; 2 min z4 x 8 en z2; tempo z3 5 min; 5 min calma."
+  },
+  {
+   "fecha": "2026-06-27",
+   "bloque": "Petit Train",
+   "nombre": "Trabajo de velocidad en umbral",
+   "km": "7.16",
+   "duracion": "0:45:32",
+   "ritmo": "06:22",
+   "tss": "33",
+   "instrucciones": "10 min trote; 5×20 s aceleración; 10×1 min z4 (85-90%) con 1.5 min trote."
+  },
+  {
+   "fecha": "2026-07-03",
+   "bloque": "Petit Train",
+   "nombre": "Aumenta - estable - aumenta - estable",
+   "km": "10.9",
+   "duracion": "1:03:04",
+   "ritmo": "05:48",
+   "tss": "57",
+   "instrucciones": "Dos repeticiones aumentando esfuerzo y sosteniendo."
+  },
+  {
+   "fecha": "2026-07-08",
+   "bloque": "Petit Train",
+   "nombre": "Intervalos 12/12/12",
+   "km": "11.4",
+   "duracion": "1:09:53",
+   "ritmo": "06:07",
+   "tss": "58",
+   "instrucciones": "12 min z2; 3×12 tempo alto con 3 min descanso; 12 min calma."
+  },
+  {
+   "fecha": "2026-07-09",
+   "bloque": "Petit Train",
+   "nombre": "Diferentes esfuerzos",
+   "km": "12.7",
+   "duracion": "1:19:00",
+   "ritmo": "06:14",
+   "tss": "55",
+   "instrucciones": "Intervalos largos = esfuerzo más bajo; intensidad media/alta."
+  },
+  {
+   "fecha": "2026-07-17",
+   "bloque": "Petit Train",
+   "nombre": "Construcción Maratón (Cap. Aeróbica)",
+   "km": "12.3",
+   "duracion": "1:19:21",
+   "ritmo": "06:27",
+   "tss": "65",
+   "instrucciones": "10 min técnica; 1k z2; 10×(1k z3 x 1k z2); 1k trote ligero."
+  },
+  {
+   "fecha": "2026-07-24",
+   "bloque": "Petit Train",
+   "nombre": "1:3 (esfuerzo alto x bajo) 2ª",
+   "km": "11.2",
+   "duracion": "1:18:36",
+   "ritmo": "07:03",
+   "tss": "54",
+   "instrucciones": "10 min trote; 5 min z3; 2 min z4 x 8 min z2; tempo z3 5 min."
+  },
+  {
+   "fecha": "2026-07-29",
+   "bloque": "Petit Train",
+   "nombre": "Arriba del umbral",
+   "km": "10.1",
+   "duracion": "1:02:45",
+   "ritmo": "06:11",
+   "tss": "46",
+   "instrucciones": "Parte principal 5% arriba del umbral. Nota atleta: molestia pantorrilla izquierda."
+  },
+  {
+   "fecha": "2026-08-04",
+   "bloque": "Petit Train",
+   "nombre": "Largo z2; medio subumbral; corto umbral",
+   "km": "12.8",
+   "duracion": "1:28:27",
+   "ritmo": "06:53",
+   "tss": "58",
+   "instrucciones": "Combinación de zona 2, subumbral y umbral."
+  },
+  {
+   "fecha": "2026-08-06",
+   "bloque": "Petit Train",
+   "nombre": "Tempos largos",
+   "km": "11.2",
+   "duracion": "1:13:14",
+   "ritmo": "06:33",
+   "tss": "50",
+   "instrucciones": "Tempos sosteniendo 88% del umbral."
+  },
+  {
+   "fecha": "2026-08-14",
+   "bloque": "Petit Train",
+   "nombre": "Tempo para maratón 6x1000",
+   "km": "10.6",
+   "duracion": "1:02:34",
+   "ritmo": "05:53",
+   "tss": "50",
+   "instrucciones": "6x1000 al 94% del umbral con 300 m descanso; 500 m calma."
+  },
+  {
+   "fecha": "2026-08-22",
+   "bloque": "Petit Train",
+   "nombre": "Combinaciones resistencia+velocidad",
+   "km": "13.0",
+   "duracion": "1:25:32",
+   "ritmo": "06:35",
+   "tss": "58",
+   "instrucciones": "3k z2/z3; 8x400 z4 con 200 m activo; 3k z3; 1k trote."
+  },
+  {
+   "fecha": "2026-08-25",
+   "bloque": "Petit Train",
+   "nombre": "Aceleraciones al 88%",
+   "km": "8.09",
+   "duracion": "0:56:33",
+   "ritmo": "06:59",
+   "tss": "47",
+   "instrucciones": "8 aceleraciones de 2 min al 100% umbral; 1 min descanso."
+  },
+  {
+   "fecha": "2026-08-27",
+   "bloque": "Petit Train",
+   "nombre": "Tempo maratón",
+   "km": "10.8",
+   "duracion": "1:08:37",
+   "ritmo": "06:21",
+   "tss": "54",
+   "instrucciones": "Zona tempo al 95%."
+  },
+  {
+   "fecha": "2026-08-30",
+   "bloque": "Petit Train",
+   "nombre": "Intervalos paso maratón",
+   "km": "22.0",
+   "duracion": "2:10:35",
+   "ritmo": "05:56",
+   "tss": "103",
+   "instrucciones": "Paso maratón sostenible, practica esa sensación."
+  },
+  {
+   "fecha": "2026-09-06",
+   "bloque": "Petit Train",
+   "nombre": "Marathon Simulation",
+   "km": "25.0",
+   "duracion": "2:39:36",
+   "ritmo": "06:23",
+   "tss": "107",
+   "instrucciones": "Larga al 80-85% umbral FC; practica desayuno, ropa, tenis, esfuerzo."
+  },
+  {
+   "fecha": "2026-09-10",
+   "bloque": "Petit Train",
+   "nombre": "Calienta + tempo + cierre z4",
+   "km": "12.9",
+   "duracion": "1:21:40",
+   "ritmo": "06:20",
+   "tss": "56",
+   "instrucciones": "10 min trote; tempo 40 min constante; 20 min z4; 10 min calma."
+  },
+  {
+   "fecha": "2026-09-15",
+   "bloque": "Petit Train",
+   "nombre": "1-1-2-2-1-1",
+   "km": "8.12",
+   "duracion": "0:52:26",
+   "ritmo": "06:28",
+   "tss": "36",
+   "instrucciones": "Los 1s calentar/enfriar, los 2 tempo medio-alto."
+  },
+  {
+   "fecha": "2026-09-25",
+   "bloque": "Petit Train",
+   "nombre": "Tempo Pace Maratón",
+   "km": "10.5",
+   "duracion": "1:01:12",
+   "ritmo": "05:51",
+   "tss": "44",
+   "instrucciones": "10 min trote; 5 min subir a paso maratón; sostén 40 min; baja gradual."
+  }
+ ],
+ "totals": {
+  "workouts": 75,
+  "ottawa_km": 931,
+  "petit_km": 889,
+  "ottawa_tss": 5310,
+  "petit_tss": 5560
+ },
+ "progress": {
+  "from": "4:00:23",
+  "now": "3:55:00",
+  "goal": "3:45:00",
+  "gained": "0:05:23",
+  "remaining": "0:10:00",
+  "pct": 35
+ }
+}
