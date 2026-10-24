@@ -147,7 +147,7 @@ export default function ProgressPanel() {
           ⭐ Tu mejor maratón: Lala 2019, 3:48 (Lala 2020: 3:52) · la meta 3:45 está a 3 minutos de tu marca
         </div>
         <div style={{ color: '#333', marginTop: 2 }}>
-          ⭐ Tu mejor medio: 1:36 (ESPN, 5 may 2019)
+          ⭐ Tu mejor medio: 1:36:30 (ESPN, 5 may 2019)
         </div>
       </div>
 
