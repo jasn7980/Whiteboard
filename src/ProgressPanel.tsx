@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 // y sus sesiones de intervalos con el detalle completo de cada una.
 // ---------------------------------------------------------------------------
 
-type Race = { id: string; name: string; date: string; note: string }
+type Race = { id: string; name: string; date: string; note: string; status: string }
 type ProgressData = {
   updated: string
   goal: { time: string; pace: string; races: Race[] }
@@ -166,6 +166,7 @@ export default function ProgressPanel() {
               1 · {data.goal.races[0].name} — {data.goal.races[0].date} · faltan{' '}
               {ottawaDays} días · <strong>{Math.floor(ottawaDays / 7)} semanas</strong>
             </div>
+            <div style={{ color: '#2e7d32', fontWeight: 700 }}>{data.goal.races[0].status}</div>
             <div style={{ color: '#555' }}>
               Objetivo ~3:50 (bajar 5 minutos) · {data.goal.races[0].note}
             </div>
@@ -183,6 +184,7 @@ export default function ProgressPanel() {
               2 · {data.goal.races[1].name} — {data.goal.races[1].date} · faltan{' '}
               {chicagoDays} días · <strong>{Math.floor(chicagoDays / 7)} semanas</strong>
             </div>
+            <div style={{ color: '#555', fontWeight: 700 }}>{data.goal.races[1].status}</div>
             <div style={{ color: '#333' }}>
               Objetivo 3:45 (otros 5 minutos) · carrera plana, ideal para el remate
             </div>

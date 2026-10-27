@@ -69,9 +69,11 @@ data = {
              "pace": "5:20",
              "races": [
                  {"id": "ottawa", "name": "Ottawa 2027", "date": "2027-05-30",
-                  "note": "Tamarack Ottawa Race Weekend"},
+                  "note": "Tamarack Ottawa Race Weekend",
+                  "status": "✓ Inscrito"},
                  {"id": "chicago", "name": "Chicago 2027", "date": "2027-10-10",
-                  "note": "Sorteo cierra 29 oct 2026, 2 PM CT; resultados 8 dic 2026"},
+                  "note": "Inscrito al sorteo 26 oct 2026 · resultados 8 dic 2026",
+                  "status": "En sorteo"},
              ]},
     "marathons": [
         {"race": "Ottawa", "date": "2026-05-24", "time": "4:00:23",
