@@ -34,5 +34,5 @@ export function fitCardSize(
   h += 10 // padding inferior
   h += 6 // holgura de seguridad
 
-  return { w, h: Math.min(430, Math.max(92, Math.round(h))) }
+  return { w, h: Math.min(430, Math.max(150, Math.round(h))) }
 }

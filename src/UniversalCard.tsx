@@ -147,6 +147,21 @@ function UniversalCardComponent({ shape }: { shape: UniversalCardShape }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, shape.props.title, shape.props.body, shape.props.kind, shape.props.startAt, shape.props.endAt])
 
+  // Al entrar a edición, una tarjeta compacta crece a un tamaño cómodo:
+  // con ~92 px de alto los controles (título, texto, fechas) no cabían
+  // y quedaban en una ventanita con scroll imposible de usar con el
+  // stylus. Al salir de la edición, el auto-ajuste vuelve a aplicarse
+  // (con el piso mínimo de 150 px, nunca vuelve a lo diminuto).
+  useEffect(() => {
+    if (!isEditing) return
+    if (shape.props.kind === 'progreso') return
+    if (shape.props.w < 300 || shape.props.h < 200) {
+      patch({ w: Math.max(shape.props.w, 300), h: Math.max(shape.props.h, 200) })
+    }
+    // Solo al entrar a edición: el parche no debe re-dispararse.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing])
+
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
     setError(null)
