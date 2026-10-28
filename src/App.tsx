@@ -293,6 +293,13 @@ export default function App() {
         >
           🎯 Centrar
         </button>
+        <button
+          style={barButton}
+          title="Abrir el mapa de búsqueda de casas en otra pestaña"
+          onClick={() => window.open('https://jasn7980.github.io/Mapa-casas/', '_blank', 'noopener')}
+        >
+          🗺 Mapa de casas
+        </button>
         <div style={{ width: 1, alignSelf: 'stretch', background: '#ddd' }} />
         {isConfigured() ? (
           account ? (
