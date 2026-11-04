@@ -234,6 +234,8 @@ export default function App() {
     border: '1px solid #ccc',
     background: '#fff',
     cursor: 'pointer',
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
   }
 
   return (
@@ -250,10 +252,14 @@ export default function App() {
           position: 'fixed',
           top: 12,
           left: 12,
+          right: 12,
           zIndex: 300,
           display: 'flex',
           gap: 8,
           alignItems: 'center',
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
           background: 'rgba(255,255,255,0.92)',
           border: '1px solid #ddd',
           borderRadius: 12,
@@ -300,11 +306,11 @@ export default function App() {
         >
           🗺 Mapa de casas
         </button>
-        <div style={{ width: 1, alignSelf: 'stretch', background: '#ddd' }} />
+        <div style={{ width: 1, flexShrink: 0, alignSelf: 'stretch', background: '#ddd' }} />
         {isConfigured() ? (
           account ? (
             <>
-              <span style={{ fontSize: 12, color: '#333' }}>☁ {account.username}</span>
+              <span style={{ fontSize: 12, color: '#333', flexShrink: 0, whiteSpace: 'nowrap' }}>☁ {account.username}</span>
               <button
                 style={barButton}
                 onClick={() => void runSync(true)}
@@ -314,7 +320,7 @@ export default function App() {
                 {syncBusy ? 'Trayendo…' : '⇩ Citas'}
               </button>
               {syncMsg ? (
-                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260 }}>{syncMsg}</span>
+                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260, flexShrink: 0 }}>{syncMsg}</span>
               ) : null}
               <button
                 style={barButton}
@@ -324,11 +330,11 @@ export default function App() {
               >
                 {cloudBusy ? 'Guardando…' : '⇧ Nube'}
               </button>
-              <span style={{ fontSize: 12, color: cloudReady ? '#2e7d32' : '#999' }}>
+              <span style={{ fontSize: 12, color: cloudReady ? '#2e7d32' : '#999', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 {cloudReady ? '☁ OneDrive' : '○ este dispositivo'}
               </span>
               {cloudMsg ? (
-                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260 }}>{cloudMsg}</span>
+                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260, flexShrink: 0 }}>{cloudMsg}</span>
               ) : null}
               <button style={barButton} onClick={handleSignOut}>
                 Salir
