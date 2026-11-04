@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>whiteboard</title>
+    <!-- Web app instalable en el teléfono: manifiesto + ícono para iOS.
+         Sin service worker a propósito: el tablero siempre se sirve
+         fresco de la red, sin riesgo de una versión vieja cacheada. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#863bff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Whiteboard" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <title>Whiteboard</title>
   </head>
   <body>
     <div id="root"></div>
