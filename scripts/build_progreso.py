@@ -81,6 +81,17 @@ data = {
         {"race": "Petit Train du Nord", "date": "2026-10-04", "time": "3:55:00",
          "seconds": hms("3:55:00"), "pace": pace(hms("3:55:00"), 42.195)},
     ],
+    # Maratones fuera de la serie de ruta hacia 3:45: se registran aparte
+    # para que NO entren en la gráfica de tendencia ni en el cálculo de
+    # progreso. BougeBouge Mont-Royal 2026 fue trail (~600 m de desnivel)
+    # y su tiempo sigue preliminar (Sportstats, sin etiqueta de oficial).
+    "trailMarathons": [
+        {"race": "BougeBouge Mont-Royal", "date": "2026-11-01",
+         "time": "4:20:34", "seconds": hms("4:20:34"), "pace": "6:11",
+         "note": "Trail, ~600 m de desnivel · Jaime 10º / Daniela 3ª en su "
+                 "categoría · tiempo preliminar, no comparable con "
+                 "tiempos planos"},
+    ],
     "half": {"race": "Montreal", "date": "2026-04-19", "time": "1:51:34",
              "seconds": hms("1:51:34")},
     "personalBests": [

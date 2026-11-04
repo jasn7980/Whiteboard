@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-26",
+ "updated": "2026-11-04",
  "goal": {
   "time": "3:45:00",
   "seconds": 13500,
@@ -35,6 +35,16 @@
    "time": "3:55:00",
    "seconds": 14100.0,
    "pace": "5:34"
+  }
+ ],
+ "trailMarathons": [
+  {
+   "race": "BougeBouge Mont-Royal",
+   "date": "2026-11-01",
+   "time": "4:20:34",
+   "seconds": 15634.0,
+   "pace": "6:11",
+   "note": "Trail, ~600 m de desnivel · Jaime 10º / Daniela 3ª en su categoría · tiempo preliminar, no comparable con tiempos planos"
   }
  ],
  "half": {

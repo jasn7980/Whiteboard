@@ -13,6 +13,7 @@ type ProgressData = {
   updated: string
   goal: { time: string; pace: string; races: Race[] }
   marathons: { race: string; date: string; time: string; seconds: number; pace: string }[]
+  trailMarathons?: { race: string; date: string; time: string; pace: string; note: string }[]
   half: { race: string; date: string; time: string }
   personalBests: { race: string; date: string; time: string; note: string }[]
   weekly: { week: string; km: number; tss: number }[]
@@ -205,6 +206,25 @@ export default function ProgressPanel() {
           {Math.floor(verdunDays / 7)} semanas · mismo objetivo 3:45
         </div>
       </div>
+
+      {(data.trailMarathons ?? []).length > 0 && (
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Maratón trail completado</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {(data.trailMarathons ?? []).map((t) => (
+              <div
+                key={`${t.race}-${t.date}`}
+                style={{ border: '1px solid #ddd', borderRadius: 8, padding: '6px 8px', background: '#fff' }}
+              >
+                <div style={{ fontWeight: 700 }}>
+                  {t.race} — {t.date} · {t.time} ({t.pace} /km)
+                </div>
+                <div style={{ color: '#555' }}>{t.note}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         style={{
