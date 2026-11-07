@@ -586,6 +586,11 @@ export default function App() {
         ) : (
           <span style={{ fontSize: 12, color: '#999' }}>Outlook: falta el Client ID</span>
         )}
+        {import.meta.env.VITE_APP_VERSION ? (
+          <span style={{ fontSize: 10, color: '#aaa', flexShrink: 0 }} title="Versión del tablero">
+            v{import.meta.env.VITE_APP_VERSION}
+          </span>
+        ) : null}
       </div>
       {cloudInitDone && !cloudReady ? (
         <div
