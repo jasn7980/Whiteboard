@@ -23,11 +23,6 @@ function sanitizeFileName(name: string): string {
   return clean || 'foto'
 }
 
-/** ¿Es una foto? iOS a veces entrega el archivo sin tipo MIME (p. ej. HEIC desde Archivos): se acepta por extensión. */
-export function isImageFile(file: File): boolean {
-  if (file.type.startsWith('image/')) return true
-  return /\.(jpe?g|png|gif|heic|heif|webp|bmp|avif)$/i.test(file.name)
-}
 export async function compressPhoto(file: File): Promise<{
   blob: Blob
   width: number

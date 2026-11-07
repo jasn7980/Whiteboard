@@ -13,7 +13,6 @@ import {
   compressPhoto,
   ensurePhotosFolder,
   fetchPhotoBlobUrl,
-  isImageFile,
   resolvePhotoAssets,
   uploadPhoto,
 } from './photos'
@@ -366,7 +365,8 @@ export default function App() {
       let added = 0
       let firstError: string | null = null
       for (const file of Array.from(files)) {
-        if (!isImageFile(file)) continue
+        // Sin filtro previo por tipo o extensión: se intenta decodificar
+        // cada archivo y solo el decodificador decide si es una foto.
         try {
           const { blob, width, height } = await compressPhoto(file)
           const path = await uploadPhoto(token, blob, file.name)
