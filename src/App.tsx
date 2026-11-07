@@ -16,6 +16,7 @@ import {
   uploadPhoto,
 } from './photos'
 import { syncCalendarEvents } from './sync'
+import { Screensaver, type ScreensaverPhoto } from './Screensaver'
 import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
 import type { CloudBoardFile } from './onedrive'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
@@ -63,6 +64,72 @@ export default function App() {
   const [cloudBusy, setCloudBusy] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
+  const [screensaverOn, setScreensaverOn] = useState(false)
+  const [screensaverPhotos, setScreensaverPhotos] = useState<ScreensaverPhoto[]>([])
+  const screensaverOnRef = useRef(false)
+  // Minutos sin actividad para entrar al salvapantallas (0 = apagado).
+  const [idleMinutes, setIdleMinutes] = useState<number>(() => {
+    try {
+      const v = window.localStorage.getItem('tablero-screensaver-min')
+      return v === null ? 5 : Number(v) || 0
+    } catch {
+      return 5
+    }
+  })
+
+  useEffect(() => {
+    screensaverOnRef.current = screensaverOn
+  })
+
+  /**
+   * Salvapantallas: tras idleMinutes sin actividad (mover, tocar, teclear
+   * o rodar), las fotos del tablero pasan a pantalla completa una a una.
+   * Cualquier actividad lo cierra y reinicia el conteo. Sin fotos no entra.
+   */
+  useEffect(() => {
+    if (idleMinutes <= 0) return
+    let timer: number | undefined
+    const arm = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        if (document.hidden) {
+          arm()
+          return
+        }
+        const editor = editorRef.current
+        if (!editor) return
+        const photos = editor
+          .getAssets()
+          .filter(
+            (a) =>
+              a.type === 'image' &&
+              typeof (a.meta as Record<string, unknown>)?.onedrivePath === 'string',
+          )
+          .map((a) => ({
+            src: (a.props as { src?: string }).src ?? '',
+            name: (a.props as { name?: string }).name ?? 'foto',
+          }))
+          .filter((p) => p.src)
+        if (photos.length === 0) {
+          arm()
+          return
+        }
+        setScreensaverPhotos(photos)
+        setScreensaverOn(true)
+      }, idleMinutes * 60000)
+    }
+    const onActivity = () => {
+      if (screensaverOnRef.current) setScreensaverOn(false)
+      arm()
+    }
+    const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart']
+    events.forEach((ev) => window.addEventListener(ev, onActivity, { passive: true }))
+    arm()
+    return () => {
+      window.clearTimeout(timer)
+      events.forEach((ev) => window.removeEventListener(ev, onActivity))
+    }
+  }, [idleMinutes])
 
   useEffect(() => {
     return () => {
@@ -515,6 +582,26 @@ export default function App() {
         >
           {photoBusy ? 'Subiendo…' : '📷 Foto'}
         </button>
+        <select
+          style={{ ...barButton, padding: '6px 4px' }}
+          title="Salvapantallas: muestra las fotos del tablero tras este tiempo sin actividad"
+          value={idleMinutes}
+          onChange={(e) => {
+            const v = Number(e.target.value)
+            setIdleMinutes(v)
+            try {
+              window.localStorage.setItem('tablero-screensaver-min', String(v))
+            } catch {
+              // sin almacenamiento: se queda solo en esta sesión
+            }
+          }}
+        >
+          <option value={0}>🖼 Apagado</option>
+          <option value={1}>🖼 1 min</option>
+          <option value={5}>🖼 5 min</option>
+          <option value={10}>🖼 10 min</option>
+          <option value={30}>🖼 30 min</option>
+        </select>
         <input
           ref={photoInputRef}
           type="file"
@@ -666,6 +753,9 @@ export default function App() {
         >
           Error: {debugError}
         </div>
+      ) : null}
+      {screensaverOn ? (
+        <Screensaver photos={screensaverPhotos} onExit={() => setScreensaverOn(false)} />
       ) : null}
     </div>
   )
