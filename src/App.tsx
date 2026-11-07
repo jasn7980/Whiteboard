@@ -8,6 +8,13 @@ import { getAccount, getToken, getTokenSilent, isConfigured, signIn, signOut } f
 import { fetchUpcomingEvents } from './graph'
 import { fitCardSize } from './fit'
 import { ensureMuseGif, restoreMuseGif } from './museGif'
+import {
+  addPhotoToBoard,
+  compressPhoto,
+  fetchPhotoBlobUrl,
+  resolvePhotoAssets,
+  uploadPhoto,
+} from './photos'
 import { syncCalendarEvents } from './sync'
 import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
 import type { CloudBoardFile } from './onedrive'
@@ -44,6 +51,7 @@ export default function App() {
   const autoSyncedRef = useRef(false)
   const cloudInitRef = useRef<Promise<boolean> | null>(null)
   const pollRef = useRef<number | null>(null)
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [syncBusy, setSyncBusy] = useState(false)
@@ -53,6 +61,7 @@ export default function App() {
   const [cloudUpdate, setCloudUpdate] = useState<CloudBoardFile | null>(null)
   const [cloudMsg, setCloudMsg] = useState<string | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -125,7 +134,11 @@ export default function App() {
       const token = await getTokenSilent(SCOPES.files)
       if (!token) return
       const file = await fetchNewerCloudBoard(token)
-      if (!file) return
+      if (!file) {
+        // Sin versión nueva: igual resolver las fotos pendientes.
+        await resolvePhotoAssets(editor, () => Promise.resolve(token))
+        return
+      }
       if (isCloudDirty()) {
         setCloudUpdate(file)
         return
@@ -135,6 +148,8 @@ export default function App() {
       setCloudUpdate(null)
       setCloudMsg('✓ Tablero actualizado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
+      // Las fotos viajan como referencias: resolverlas tras cada carga.
+      await resolvePhotoAssets(editor, () => Promise.resolve(token))
     } catch {
       // Sin red o sin permiso: se reintenta en el próximo sondeo.
     }
@@ -155,6 +170,7 @@ export default function App() {
     setCloudUpdate(null)
     setCloudMsg('✓ Tablero actualizado desde OneDrive')
     window.setTimeout(() => setCloudMsg(null), 6000)
+    void resolvePhotoAssets(editor, () => getTokenSilent(SCOPES.files))
   }, [cloudUpdate])
 
   useEffect(() => {
@@ -211,6 +227,8 @@ export default function App() {
             180000,
           )
         }
+        // Las fotos viajan como referencias: resolverlas al abrir.
+        void resolvePhotoAssets(editor, () => getTokenSilent(SCOPES.files))
         // Muse presente en el tablero, con sus movimientos de siempre.
         ensureMuseGif(editor)
         // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
@@ -317,6 +335,7 @@ export default function App() {
       setCloudReady(true)
       setCloudMsg('✓ Tablero descargado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
+      await resolvePhotoAssets(editor, () => Promise.resolve(token))
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       // Redirigir a Microsoft para autorizar no es un error: la página
@@ -326,6 +345,56 @@ export default function App() {
       }
     } finally {
       setCloudBusy(false)
+    }
+  }
+
+  /**
+   * Sube las fotos elegidas a OneDrive (comprimidas) y las pone en el
+   * tablero como imágenes, en el centro de la vista. En el teléfono el
+   * selector ofrece tomar la foto o elegirla de la galería.
+   */
+  const handlePhotoFiles = async (files: FileList | null) => {
+    const editor = editorRef.current
+    if (!editor || !files || files.length === 0) return
+    setPhotoBusy(true)
+    try {
+      const token = await getToken(SCOPES.files)
+      const bounds = editor.getViewportPageBounds()
+      let added = 0
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        const { blob, width, height } = await compressPhoto(file)
+        const path = await uploadPhoto(token, blob, file.name)
+        const url = await fetchPhotoBlobUrl(token, path)
+        addPhotoToBoard(
+          editor,
+          path,
+          url,
+          width,
+          height,
+          bounds.center.x,
+          bounds.center.y,
+          added,
+        )
+        added++
+      }
+      setCloudReady(true)
+      setCloudMsg(
+        added === 0
+          ? 'No se pudo agregar ninguna foto'
+          : added === 1
+            ? '✓ Foto guardada en OneDrive'
+            : `✓ ${added} fotos guardadas en OneDrive`,
+      )
+      window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (!msg.includes('Redirigiendo')) {
+        setCloudMsg('No se pudo subir la foto: ' + msg)
+        window.setTimeout(() => setCloudMsg(null), 6000)
+      }
+    } finally {
+      setPhotoBusy(false)
     }
   }
 
@@ -423,6 +492,25 @@ export default function App() {
         >
           🐈‍⬛ Muse
         </button>
+        <button
+          style={barButton}
+          title="Agregar una foto al tablero (se guarda en OneDrive)"
+          disabled={photoBusy}
+          onClick={() => photoInputRef.current?.click()}
+        >
+          {photoBusy ? 'Subiendo…' : '📷 Foto'}
+        </button>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            void handlePhotoFiles(e.target.files)
+            e.target.value = ''
+          }}
+        />
         <div style={{ width: 1, flexShrink: 0, alignSelf: 'stretch', background: '#ddd' }} />
         {isConfigured() ? (
           account ? (
