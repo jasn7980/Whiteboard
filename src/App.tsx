@@ -392,8 +392,9 @@ export default function App() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (!msg.includes('Redirigiendo')) {
+        // El error se queda visible hasta tocarlo: el mensaje de 6 s
+        // se perdía sin que se alcanzara a leer.
         setCloudMsg('No se pudo subir la foto: ' + msg)
-        window.setTimeout(() => setCloudMsg(null), 6000)
       }
     } finally {
       setPhotoBusy(false)
@@ -498,7 +499,13 @@ export default function App() {
           style={barButton}
           title="Agregar una foto al tablero (se guarda en OneDrive)"
           disabled={photoBusy}
-          onClick={() => photoInputRef.current?.click()}
+          onClick={() => {
+            // Renueva el permiso ANTES de elegir las fotos: si hace
+            // falta ir a Microsoft, la redirección pasa ahora y no se
+            // pierde la selección (al volver, toca 📷 Foto otra vez).
+            void getToken(SCOPES.files).catch(() => {})
+            photoInputRef.current?.click()
+          }}
         >
           {photoBusy ? 'Subiendo…' : '📷 Foto'}
         </button>
@@ -549,7 +556,13 @@ export default function App() {
                 {cloudReady ? '☁ OneDrive' : '○ este dispositivo'}
               </span>
               {cloudMsg ? (
-                <span style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260, flexShrink: 0 }}>{cloudMsg}</span>
+                <span
+                  style={{ fontSize: 12, color: '#2e7d32', maxWidth: 260, flexShrink: 0, cursor: 'pointer' }}
+                  title="Toca para ocultar este mensaje"
+                  onClick={() => setCloudMsg(null)}
+                >
+                  {cloudMsg}
+                </span>
               ) : null}
               <button style={barButton} onClick={handleSignOut}>
                 Salir
