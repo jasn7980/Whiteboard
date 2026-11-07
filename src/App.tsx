@@ -13,6 +13,7 @@ import {
   compressPhoto,
   ensurePhotosFolder,
   fetchPhotoBlobUrl,
+  isImageFile,
   resolvePhotoAssets,
   uploadPhoto,
 } from './photos'
@@ -363,32 +364,41 @@ export default function App() {
       await ensurePhotosFolder(token)
       const bounds = editor.getViewportPageBounds()
       let added = 0
+      let firstError: string | null = null
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue
-        const { blob, width, height } = await compressPhoto(file)
-        const path = await uploadPhoto(token, blob, file.name)
-        const url = await fetchPhotoBlobUrl(token, path)
-        addPhotoToBoard(
-          editor,
-          path,
-          url,
-          width,
-          height,
-          bounds.center.x,
-          bounds.center.y,
-          added,
-        )
-        added++
+        if (!isImageFile(file)) continue
+        try {
+          const { blob, width, height } = await compressPhoto(file)
+          const path = await uploadPhoto(token, blob, file.name)
+          const url = await fetchPhotoBlobUrl(token, path)
+          addPhotoToBoard(
+            editor,
+            path,
+            url,
+            width,
+            height,
+            bounds.center.x,
+            bounds.center.y,
+            added,
+          )
+          added++
+        } catch (e) {
+          // Una foto mala no aborta el resto del lote.
+          if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+        }
       }
       setCloudReady(true)
       setCloudMsg(
         added === 0
-          ? 'No se pudo agregar ninguna foto'
+          ? firstError
+            ? 'No se pudo subir la foto: ' + firstError
+            : 'No se pudo agregar ninguna foto: no se reconoció el formato de imagen'
           : added === 1
             ? '✓ Foto guardada en OneDrive'
             : `✓ ${added} fotos guardadas en OneDrive`,
       )
-      window.setTimeout(() => setCloudMsg(null), 6000)
+      // Solo el éxito se borra solo: el error se queda hasta tocarlo.
+      if (added > 0) window.setTimeout(() => setCloudMsg(null), 6000)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (!msg.includes('Redirigiendo')) {
