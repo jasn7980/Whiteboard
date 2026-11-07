@@ -10,10 +10,9 @@ import { fitCardSize } from './fit'
 import { ensureMuseGif, restoreMuseGif } from './museGif'
 import {
   addPhotoToBoard,
+  blobToDataUrl,
   compressPhoto,
   ensurePhotosFolder,
-  fetchPhotoBlobUrl,
-  resolvePhotoAssets,
   uploadPhoto,
 } from './photos'
 import { syncCalendarEvents } from './sync'
@@ -136,8 +135,6 @@ export default function App() {
       if (!token) return
       const file = await fetchNewerCloudBoard(token)
       if (!file) {
-        // Sin versión nueva: igual resolver las fotos pendientes.
-        await resolvePhotoAssets(editor, () => Promise.resolve(token))
         return
       }
       if (isCloudDirty()) {
@@ -149,8 +146,6 @@ export default function App() {
       setCloudUpdate(null)
       setCloudMsg('✓ Tablero actualizado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
-      // Las fotos viajan como referencias: resolverlas tras cada carga.
-      await resolvePhotoAssets(editor, () => Promise.resolve(token))
     } catch {
       // Sin red o sin permiso: se reintenta en el próximo sondeo.
     }
@@ -171,7 +166,6 @@ export default function App() {
     setCloudUpdate(null)
     setCloudMsg('✓ Tablero actualizado desde OneDrive')
     window.setTimeout(() => setCloudMsg(null), 6000)
-    void resolvePhotoAssets(editor, () => getTokenSilent(SCOPES.files))
   }, [cloudUpdate])
 
   useEffect(() => {
@@ -228,8 +222,6 @@ export default function App() {
             180000,
           )
         }
-        // Las fotos viajan como referencias: resolverlas al abrir.
-        void resolvePhotoAssets(editor, () => getTokenSilent(SCOPES.files))
         // Muse presente en el tablero, con sus movimientos de siempre.
         ensureMuseGif(editor)
         // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
@@ -336,7 +328,6 @@ export default function App() {
       setCloudReady(true)
       setCloudMsg('✓ Tablero descargado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
-      await resolvePhotoAssets(editor, () => Promise.resolve(token))
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       // Redirigir a Microsoft para autorizar no es un error: la página
@@ -373,11 +364,13 @@ export default function App() {
         try {
           const { blob, width, height } = await compressPhoto(file)
           const path = await uploadPhoto(token, blob, file.name)
-          const url = await fetchPhotoBlobUrl(token, path)
+          // La foto se guarda en el tablero como data URL: tldraw
+          // rechaza las URLs blob: como src y tumba el tablero.
+          const src = await blobToDataUrl(blob)
           addPhotoToBoard(
             editor,
             path,
-            url,
+            src,
             width,
             height,
             bounds.center.x,

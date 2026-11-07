@@ -1,12 +1,10 @@
 import { createShapeId, type Editor, type TLAssetId } from 'tldraw'
 
-// Fotos del tablero: el archivo vive en OneDrive (carpeta propia de
-// la app) y el tablero guarda solo la referencia. Así el tablero.json
-// no se infla con las fotos adentro y se sincroniza igual que todo.
-//
-// El asset lleva la ruta en meta.onedrivePath y un src de blob válido
-// solo en esta sesión; al abrir (o al cargar la nube) se vuelve a
-// resolver desde OneDrive con el token del usuario.
+// Fotos del tablero: el archivo original vive en OneDrive (carpeta
+// propia de la app) y el tablero guarda la foto comprimida como data
+// URL en el asset. tldraw solo acepta src http(s), data: o asset: —
+// una URL blob: rompe la validación del asset y tumba el tablero.
+// La ruta en OneDrive queda en meta.onedrivePath como referencia.
 
 const GRAPH = 'https://graph.microsoft.com/v1.0'
 const PHOTOS_DIR = 'fotos'
@@ -14,8 +12,15 @@ const MAX_DIM = 1600
 const JPEG_QUALITY = 0.85
 const MAX_DISPLAY_W = 600
 
-// Cache en memoria: ruta en OneDrive -> URL de blob válida en esta sesión.
-const blobCache = new Map<string, string>()
+/** Convierte un blob a data URL (la forma en que tldraw guarda imágenes locales). */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('No se pudo leer esa foto'))
+    reader.readAsDataURL(blob)
+  })
+}
 
 function sanitizeFileName(name: string): string {
   const base = name.replace(/\.[^.]*$/, '').toLowerCase()
@@ -121,25 +126,11 @@ export async function uploadPhoto(
   return path
 }
 
-/** Baja la foto de OneDrive y devuelve una URL de blob para mostrarla. */
-export async function fetchPhotoBlobUrl(token: string, path: string): Promise<string> {
-  const cached = blobCache.get(path)
-  if (cached) return cached
-  const res = await fetch(`${GRAPH}/me/drive/special/approot:/${path}:/content`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) throw new Error(`OneDrive ${await graphError(res)} al bajar la foto`)
-  const blob = await res.blob()
-  const url = URL.createObjectURL(blob)
-  blobCache.set(path, url)
-  return url
-}
-
 /** Crea la figura de imagen en el tablero para una foto ya subida. */
 export function addPhotoToBoard(
   editor: Editor,
   path: string,
-  blobUrl: string,
+  src: string,
   width: number,
   height: number,
   centerX: number,
@@ -157,7 +148,7 @@ export function addPhotoToBoard(
       meta: { onedrivePath: path },
       props: {
         name: path.split('/').pop() ?? 'foto',
-        src: blobUrl,
+        src,
         w: width,
         h: height,
         mimeType: 'image/jpeg',
@@ -181,39 +172,4 @@ export function addPhotoToBoard(
       flipY: false,
     },
   })
-}
-
-/**
- * Resuelve las fotos del tablero: para cada asset con meta.onedrivePath,
- * baja la foto de OneDrive y pone su URL de blob como src. Se ejecuta
- * al abrir y después de cada carga de la nube (la nube guarda el src
- * de otro dispositivo, que en este navegador ya no vale).
- */
-export async function resolvePhotoAssets(
-  editor: Editor,
-  getToken: () => Promise<string | null>,
-): Promise<void> {
-  const photos = editor
-    .getAssets()
-    .filter(
-      (a) =>
-        a.type === 'image' &&
-        typeof (a.meta as Record<string, unknown>)?.onedrivePath === 'string',
-    )
-  if (photos.length === 0) return
-  const token = await getToken()
-  if (!token) return
-  for (const asset of photos) {
-    const path = (asset.meta as Record<string, unknown>).onedrivePath as string
-    try {
-      const url = await fetchPhotoBlobUrl(token, path)
-      const current = editor.getAsset(asset.id)
-      if (!current || current.props.src === url) continue
-      editor.updateAssets([
-        { ...current, props: { ...current.props, src: url } },
-      ])
-    } catch {
-      // Sin red o sin permiso: la foto queda sin resolver hasta el próximo intento.
-    }
-  }
 }
