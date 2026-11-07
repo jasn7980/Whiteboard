@@ -353,10 +353,13 @@ export default function App() {
    * Sube las fotos elegidas a OneDrive (comprimidas) y las pone en el
    * tablero como imágenes, en el centro de la vista. En el teléfono el
    * selector ofrece tomar la foto o elegirla de la galería.
+   *
+   * Recibe File[] ya copiados: la lista del input se vacía al limpiarlo
+   * y leerla después del primer await daba cero archivos.
    */
-  const handlePhotoFiles = async (files: FileList | null) => {
+  const handlePhotoFiles = async (files: File[]) => {
     const editor = editorRef.current
-    if (!editor || !files || files.length === 0) return
+    if (!editor || files.length === 0) return
     setPhotoBusy(true)
     try {
       const token = await getToken(SCOPES.files)
@@ -364,7 +367,7 @@ export default function App() {
       const bounds = editor.getViewportPageBounds()
       let added = 0
       let firstError: string | null = null
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         // Sin filtro previo por tipo o extensión: se intenta decodificar
         // cada archivo y solo el decodificador decide si es una foto.
         try {
@@ -526,8 +529,11 @@ export default function App() {
           multiple
           style={{ display: 'none' }}
           onChange={(e) => {
-            void handlePhotoFiles(e.target.files)
+            // Copiar los archivos AQUÍ, en el mismo gesto: si se limpia
+            // el input antes, la lista llega vacía al subir.
+            const picked = Array.from(e.target.files ?? [])
             e.target.value = ''
+            void handlePhotoFiles(picked)
           }}
         />
         <div style={{ width: 1, flexShrink: 0, alignSelf: 'stretch', background: '#ddd' }} />
