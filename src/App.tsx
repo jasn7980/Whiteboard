@@ -7,7 +7,7 @@ import type { UniversalCardShapeProps } from './UniversalCard'
 import { getAccount, getToken, getTokenSilent, isConfigured, signIn, signOut } from './auth'
 import { fetchUpcomingEvents } from './graph'
 import { fitCardSize } from './fit'
-import { ensureMuseGif } from './museGif'
+import { ensureMuseGif, restoreMuseGif } from './museGif'
 import { syncCalendarEvents } from './sync'
 import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
 import type { CloudBoardFile } from './onedrive'
@@ -412,6 +412,16 @@ export default function App() {
           onClick={() => window.open('https://jasn7980.github.io/Mapa-casas/', '_blank', 'noopener')}
         >
           🗺 Mapa de casas
+        </button>
+        <button
+          style={barButton}
+          title="Volver a poner a Muse en el tablero"
+          onClick={() => {
+            const ed = editorRef.current
+            if (ed) restoreMuseGif(ed)
+          }}
+        >
+          🐈‍⬛ Muse
         </button>
         <div style={{ width: 1, flexShrink: 0, alignSelf: 'stretch', background: '#ddd' }} />
         {isConfigured() ? (

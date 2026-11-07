@@ -1,5 +1,5 @@
 import type { Editor, TLStoreSnapshot } from 'tldraw'
-import { MUSE_GIF_ASSET_ID, MUSE_GIF_SHAPE_ID } from './museGif'
+import { MUSE_GIF_SHAPE_ID } from './museGif'
 
 const GRAPH = 'https://graph.microsoft.com/v1.0'
 // Carpeta propia de la app en OneDrive (se crea sola al primer uso):
@@ -54,17 +54,6 @@ function isDirty(): boolean {
   }
 }
 
-/**
- * El GIF de Muse es por dispositivo (su baja queda en el tombstone
- * local) y se vuelve a sembrar al abrir: no viaja en la nube.
- */
-function stripMuseGif(snapshot: TLStoreSnapshot): TLStoreSnapshot {
-  const store = { ...(snapshot.store as Record<string, unknown>) }
-  delete store[MUSE_GIF_SHAPE_ID as string]
-  delete store[MUSE_GIF_ASSET_ID as string]
-  return { ...snapshot, store: store as TLStoreSnapshot['store'] }
-}
-
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
@@ -101,7 +90,9 @@ export async function uploadBoardFile(
     version: 1,
     savedAt,
     // Solo el documento (tinta y tarjetas), sin la sesión/cámara.
-    snapshot: stripMuseGif(editor.getSnapshot().document),
+    // El GIF de Muse viaja como cualquier figura: tiene ids fijos,
+    // así que no se duplica entre dispositivos.
+    snapshot: editor.getSnapshot().document,
   }
   const res = await fetchWithTimeout(`${GRAPH}${BOARD_PATH}`, {
     method: 'PUT',

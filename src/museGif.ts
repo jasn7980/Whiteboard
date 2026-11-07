@@ -2,8 +2,8 @@ import { createShapeId, type Editor, type TLAssetId, type TLShapeId } from 'tldr
 
 const ASSET_ID = 'asset:muse-gif' as TLAssetId
 const SHAPE_ID = createShapeId('muse-gif')
-// Ids fijos del GIF, para que la sincronización en la nube pueda
-// excluirlo: el GIF es por dispositivo y se vuelve a sembrar al abrir.
+// Ids fijos del GIF: el mismo en todos los dispositivos, por eso viaja
+// en la nube como cualquier figura y no se duplica.
 export const MUSE_GIF_ASSET_ID = ASSET_ID
 export const MUSE_GIF_SHAPE_ID = SHAPE_ID
 const OFF_KEY = 'tablero-muse-gif'
@@ -36,13 +36,23 @@ async function fetchCurrentLook(): Promise<MuseLook> {
  * siempre y su disfraz del momento. El disfraz vigente lo dicta
  * muse-current.json (lo actualiza la rotación de Halloween); el
  * tablero lo revisa al abrir y cada 3 minutos, y cambia el GIF sin
- * mover la figura de donde Jaime la haya puesto. Se crea una sola
- * vez (ids fijos, sin duplicados); si Jaime lo borra, no vuelve a
- * aparecer (la baja queda registrada en este navegador).
+ * mover la figura de donde Jaime la haya puesto. El GIF viaja en la
+ * nube como cualquier figura (ids fijos, sin duplicados). Si Jaime
+ * lo borra en un dispositivo, la baja queda registrada en ese
+ * navegador y no se vuelve a sembrar ahí; para traerlo de vuelta
+ * está restoreMuseGif (botón 🐈‍⬛ Muse).
  */
 export function ensureMuseGif(editor: Editor): void {
-  const wired = editor as Editor & { __museGifWired?: boolean }
-  if (wired.__museGifWired) return
+  const wired = editor as Editor & {
+    __museGifWired?: boolean
+    __museGifSeed?: () => void
+  }
+  if (wired.__museGifWired) {
+    // Ya cableado (listener + sondeo activos): solo re-siembra,
+    // por si la baja se levantó con restoreMuseGif.
+    wired.__museGifSeed?.()
+    return
+  }
   wired.__museGifWired = true
 
   // Si Jaime lo borra, respetamos la baja en este navegador.
@@ -55,14 +65,6 @@ export function ensureMuseGif(editor: Editor): void {
       }
     }
   })
-
-  let dismissed = false
-  try {
-    dismissed = window.localStorage.getItem(OFF_KEY) === 'off'
-  } catch {
-    dismissed = false
-  }
-  if (dismissed) return
 
   let currentGif = ''
 
@@ -106,9 +108,28 @@ export function ensureMuseGif(editor: Editor): void {
     }
   }
 
-  const refresh = () => {
+  const seed = () => {
+    let dismissed = false
+    try {
+      dismissed = window.localStorage.getItem(OFF_KEY) === 'off'
+    } catch {
+      dismissed = false
+    }
+    if (dismissed) return
     void fetchCurrentLook().then(({ gif }) => applyLook(gif))
   }
-  refresh()
-  window.setInterval(refresh, POLL_MS)
+  wired.__museGifSeed = seed
+
+  seed()
+  window.setInterval(seed, POLL_MS)
+}
+
+/** Vuelve a sembrar a Muse tras haberlo borrado en este navegador. */
+export function restoreMuseGif(editor: Editor): void {
+  try {
+    window.localStorage.removeItem(OFF_KEY)
+  } catch {
+    // sin almacenamiento disponible: se ignora
+  }
+  ensureMuseGif(editor)
 }
