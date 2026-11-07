@@ -59,6 +59,21 @@ export async function compressPhoto(file: File): Promise<{
   }
 }
 
+/** Crea la carpeta fotos/ en OneDrive si aún no existe (la subida no crea carpetas). */
+export async function ensurePhotosFolder(token: string): Promise<void> {
+  const res = await fetch(`${GRAPH}/me/drive/special/approot/children`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: PHOTOS_DIR, folder: {} }),
+  })
+  // 409 = la carpeta ya existe.
+  if (res.ok || res.status === 409) return
+  throw new Error(`OneDrive ${res.status}`)
+}
+
 /** Sube la foto comprimida a la carpeta de la app en OneDrive. Devuelve su ruta. */
 export async function uploadPhoto(
   token: string,

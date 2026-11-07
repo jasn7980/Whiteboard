@@ -11,6 +11,7 @@ import { ensureMuseGif, restoreMuseGif } from './museGif'
 import {
   addPhotoToBoard,
   compressPhoto,
+  ensurePhotosFolder,
   fetchPhotoBlobUrl,
   resolvePhotoAssets,
   uploadPhoto,
@@ -359,6 +360,7 @@ export default function App() {
     setPhotoBusy(true)
     try {
       const token = await getToken(SCOPES.files)
+      await ensurePhotosFolder(token)
       const bounds = editor.getViewportPageBounds()
       let added = 0
       for (const file of Array.from(files)) {
