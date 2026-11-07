@@ -229,3 +229,29 @@ export function attachCloudSave(
     dispose()
   }
 }
+
+/** ¿Hay cambios locales sin subir a OneDrive? */
+export function isCloudDirty(): boolean {
+  return isDirty()
+}
+
+/** Registra que este dispositivo ya tiene la versión de la nube indicada. */
+export function setCloudMarker(savedAt: string): void {
+  setMarker(savedAt)
+}
+
+/**
+ * Descarga el tablero de OneDrive solo si es más nuevo que la última
+ * versión que este dispositivo conoce. null si no hay nada nuevo
+ * (o si este dispositivo nunca sincronizó: ese caso lo decide
+ * initCloudBoard al abrir, no el sondeo).
+ */
+export async function fetchNewerCloudBoard(
+  token: string,
+): Promise<CloudBoardFile | null> {
+  const marker = getMarker()
+  if (!marker) return null
+  const cloud = await downloadBoardFile(token)
+  if (!cloud) return null
+  return cloud.savedAt > marker ? cloud : null
+}

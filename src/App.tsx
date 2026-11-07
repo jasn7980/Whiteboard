@@ -9,7 +9,8 @@ import { fetchUpcomingEvents } from './graph'
 import { fitCardSize } from './fit'
 import { ensureMuseGif } from './museGif'
 import { syncCalendarEvents } from './sync'
-import { attachCloudSave, initCloudBoard, uploadBoardFile } from './onedrive'
+import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
+import type { CloudBoardFile } from './onedrive'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
@@ -42,14 +43,23 @@ export default function App() {
   const editorRef = useRef<Editor | null>(null)
   const autoSyncedRef = useRef(false)
   const cloudInitRef = useRef<Promise<boolean> | null>(null)
+  const pollRef = useRef<number | null>(null)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [syncBusy, setSyncBusy] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [cloudReady, setCloudReady] = useState(false)
+  const [cloudInitDone, setCloudInitDone] = useState(false)
+  const [cloudUpdate, setCloudUpdate] = useState<CloudBoardFile | null>(null)
   const [cloudMsg, setCloudMsg] = useState<string | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
   const [debugError, setDebugError] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current !== null) window.clearInterval(pollRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const onError = (e: ErrorEvent) => setDebugError(e.message || 'Error desconocido')
@@ -102,6 +112,51 @@ export default function App() {
     }
   }, [])
 
+  /**
+   * Revisa cada 3 min si OneDrive tiene una versión más nueva del tablero.
+   * Si este dispositivo no tiene cambios sin subir, la carga sola; si los
+   * tiene, avisa y deja que el usuario decida (cargar la nube descartaría
+   * sus cambios locales).
+   */
+  const checkCloudUpdates = useCallback(async () => {
+    const editor = editorRef.current
+    if (!editor) return
+    try {
+      const token = await getTokenSilent(SCOPES.files)
+      if (!token) return
+      const file = await fetchNewerCloudBoard(token)
+      if (!file) return
+      if (isCloudDirty()) {
+        setCloudUpdate(file)
+        return
+      }
+      editor.loadSnapshot(file.snapshot)
+      setCloudMarker(file.savedAt)
+      setCloudUpdate(null)
+      setCloudMsg('✓ Tablero actualizado desde OneDrive')
+      window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch {
+      // Sin red o sin permiso: se reintenta en el próximo sondeo.
+    }
+  }, [])
+
+  /** Carga la versión de la nube aunque haya cambios locales sin subir. */
+  const loadCloudUpdate = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor || !cloudUpdate) return
+    if (
+      !window.confirm(
+        'Tienes cambios sin subir en este dispositivo. Si cargas la versión de OneDrive, esos cambios se pierden. ¿Cargar de todos modos?',
+      )
+    )
+      return
+    editor.loadSnapshot(cloudUpdate.snapshot)
+    setCloudMarker(cloudUpdate.savedAt)
+    setCloudUpdate(null)
+    setCloudMsg('✓ Tablero actualizado desde OneDrive')
+    window.setTimeout(() => setCloudMsg(null), 6000)
+  }, [cloudUpdate])
+
   useEffect(() => {
     if (isConfigured()) {
       getAccount()
@@ -144,9 +199,18 @@ export default function App() {
       )
       void cloudInitRef.current.then((ok) => {
         if (ok) setCloudReady(true)
+        setCloudInitDone(true)
         attachCloudSave(editor, () => getTokenSilent(SCOPES.files), () =>
           setCloudReady(true),
         )
+        // Sondeo de la nube cada 3 min: trae la versión de OneDrive si
+        // otro dispositivo guardó después (sin recargar la página).
+        if (pollRef.current === null) {
+          pollRef.current = window.setInterval(
+            () => void checkCloudUpdates(),
+            180000,
+          )
+        }
         // Muse presente en el tablero, con sus movimientos de siempre.
         ensureMuseGif(editor)
         // Si el tablero está vacío, dejamos dos tarjetas de ejemplo para
@@ -196,7 +260,7 @@ export default function App() {
         }
       })
     },
-    [runSync],
+    [runSync, checkCloudUpdates],
   )
 
   /** Guarda el tablero en OneDrive ahora mismo (pide el permiso si falta). */
@@ -216,6 +280,49 @@ export default function App() {
       // regresa ya conectada y la nube se activa sola.
       if (!msg.includes('Redirigiendo')) {
         setCloudMsg('No se pudo guardar en OneDrive: ' + msg)
+      }
+    } finally {
+      setCloudBusy(false)
+    }
+  }
+
+  /**
+   * Baja el tablero guardado en OneDrive y lo carga, forzado por el
+   * usuario: si hay cambios sin subir en este dispositivo, se pierden.
+   * Si no hay sesión o permiso, pide autorizarlo (igual que ⇧ Nube).
+   */
+  const handleCloudDownload = async () => {
+    const editor = editorRef.current
+    if (!editor) return
+    setCloudBusy(true)
+    try {
+      const token = await getToken(SCOPES.files)
+      const cloud = await downloadBoardFile(token)
+      if (!cloud) {
+        setCloudMsg('No hay tablero guardado en OneDrive')
+        window.setTimeout(() => setCloudMsg(null), 6000)
+        return
+      }
+      if (isCloudDirty()) {
+        if (
+          !window.confirm(
+            'Tienes cambios sin subir en este dispositivo. Si descargas la versión de OneDrive, esos cambios se pierden. ¿Descargar de todos modos?',
+          )
+        )
+          return
+      }
+      editor.loadSnapshot(cloud.snapshot)
+      setCloudMarker(cloud.savedAt)
+      setCloudUpdate(null)
+      setCloudReady(true)
+      setCloudMsg('✓ Tablero descargado desde OneDrive')
+      window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // Redirigir a Microsoft para autorizar no es un error: la página
+      // regresa ya conectada y la nube se activa sola.
+      if (!msg.includes('Redirigiendo')) {
+        setCloudMsg('No se pudo descargar de OneDrive: ' + msg)
       }
     } finally {
       setCloudBusy(false)
@@ -330,6 +437,14 @@ export default function App() {
               >
                 {cloudBusy ? 'Guardando…' : '⇧ Nube'}
               </button>
+              <button
+                style={barButton}
+                onClick={() => void handleCloudDownload()}
+                disabled={cloudBusy}
+                title="Bajar el tablero guardado en OneDrive (si tienes cambios sin subir, se pierden)"
+              >
+                {cloudBusy ? 'Bajando…' : '⇩ Nube'}
+              </button>
               <span style={{ fontSize: 12, color: cloudReady ? '#2e7d32' : '#999', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 {cloudReady ? '☁ OneDrive' : '○ este dispositivo'}
               </span>
@@ -349,6 +464,63 @@ export default function App() {
           <span style={{ fontSize: 12, color: '#999' }}>Outlook: falta el Client ID</span>
         )}
       </div>
+      {cloudInitDone && !cloudReady ? (
+        <div
+          style={{
+            position: 'fixed',
+            top: 68,
+            left: 12,
+            right: 12,
+            zIndex: 300,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            background: '#fff3cd',
+            border: '1px solid #e6c200',
+            borderRadius: 12,
+            padding: '8px 10px',
+            fontFamily: 'sans-serif',
+            fontSize: 13,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          }}
+        >
+          <span>⚠ Sin conexión a OneDrive: los cambios solo se guardan en este dispositivo.</span>
+          {isConfigured() ? (
+            <button style={barButton} onClick={handleSignIn} disabled={authBusy}>
+              {authBusy ? 'Conectando…' : 'Conectar'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {cloudUpdate ? (
+        <div
+          style={{
+            position: 'fixed',
+            top: cloudInitDone && !cloudReady ? 124 : 68,
+            left: 12,
+            right: 12,
+            zIndex: 300,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            background: '#e3f2fd',
+            border: '1px solid #90caf9',
+            borderRadius: 12,
+            padding: '8px 10px',
+            fontFamily: 'sans-serif',
+            fontSize: 13,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          }}
+        >
+          <span>Hay una versión más nueva en OneDrive y tienes cambios sin subir aquí.</span>
+          <button style={barButton} onClick={loadCloudUpdate}>
+            Cargar la de la nube
+          </button>
+          <button style={barButton} onClick={() => setCloudUpdate(null)}>
+            Descartar
+          </button>
+        </div>
+      ) : null}
       {debugError ? (
         <div
           style={{
