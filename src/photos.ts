@@ -59,9 +59,32 @@ export async function compressPhoto(file: File): Promise<{
   }
 }
 
+/** Lee el código de error de Graph (p. ej. nameAlreadyExists) para el mensaje. */
+async function graphError(res: Response): Promise<string> {
+  try {
+    const body = await res.json()
+    const code = (body as { error?: { code?: string } })?.error?.code
+    const message = (body as { error?: { message?: string } })?.error?.message
+    return code ? `${code}${message ? `: ${message}` : ''}` : `HTTP ${res.status}`
+  } catch {
+    return `HTTP ${res.status}`
+  }
+}
+
 /** Crea la carpeta fotos/ en OneDrive si aún no existe (la subida no crea carpetas). */
 export async function ensurePhotosFolder(token: string): Promise<void> {
-  const res = await fetch(`${GRAPH}/me/drive/special/approot/children`, {
+  // Primero se resuelve la carpeta de la app a su id: POST /children
+  // directo sobre special/approot devuelve 400 en OneDrive personal.
+  const rootRes = await fetch(`${GRAPH}/me/drive/special/approot`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!rootRes.ok) {
+    throw new Error(
+      `OneDrive ${await graphError(rootRes)} al abrir la carpeta de la app`,
+    )
+  }
+  const root = (await rootRes.json()) as { id: string }
+  const res = await fetch(`${GRAPH}/me/drive/items/${root.id}/children`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -71,7 +94,9 @@ export async function ensurePhotosFolder(token: string): Promise<void> {
   })
   // 409 = la carpeta ya existe.
   if (res.ok || res.status === 409) return
-  throw new Error(`OneDrive ${res.status}`)
+  throw new Error(
+    `OneDrive ${await graphError(res)} al crear la carpeta fotos`,
+  )
 }
 
 /** Sube la foto comprimida a la carpeta de la app en OneDrive. Devuelve su ruta. */
@@ -93,7 +118,7 @@ export async function uploadPhoto(
       body: blob,
     },
   )
-  if (!res.ok) throw new Error(`OneDrive ${res.status}`)
+  if (!res.ok) throw new Error(`OneDrive ${await graphError(res)} al subir la foto`)
   return path
 }
 
@@ -104,7 +129,7 @@ export async function fetchPhotoBlobUrl(token: string, path: string): Promise<st
   const res = await fetch(`${GRAPH}/me/drive/special/approot:/${path}:/content`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`OneDrive ${res.status}`)
+  if (!res.ok) throw new Error(`OneDrive ${await graphError(res)} al bajar la foto`)
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   blobCache.set(path, url)
