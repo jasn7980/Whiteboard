@@ -13,6 +13,8 @@ import {
   blobToDataUrl,
   compressPhoto,
   ensurePhotosFolder,
+  hashBlob,
+  hashDataUrl,
   uploadPhoto,
 } from './photos'
 import { syncCalendarEvents } from './sync'
@@ -424,12 +426,46 @@ export default function App() {
       await ensurePhotosFolder(token)
       const bounds = editor.getViewportPageBounds()
       let added = 0
+      let duplicates = 0
       let firstError: string | null = null
+      // Huellas de las fotos que ya están en el tablero: la guardada en
+      // meta.photoHash si existe; si no, se calcula del src (data URL),
+      // así el control también cubre las fotos subidas antes que él.
+      const knownHashes = new Set<string>()
+      for (const asset of editor.getAssets()) {
+        if (asset.type !== 'image') continue
+        const meta = asset.meta as Record<string, unknown> | undefined
+        if (typeof meta?.onedrivePath !== 'string') continue
+        try {
+          const stored =
+            typeof meta.photoHash === 'string' ? meta.photoHash : null
+          const hash =
+            stored ??
+            (await hashDataUrl((asset.props as { src?: string }).src ?? ''))
+          if (hash) knownHashes.add(hash)
+        } catch {
+          // Sin huella no se puede comparar: esa foto no bloquea nada.
+        }
+      }
       for (const file of files) {
         // Sin filtro previo por tipo o extensión: se intenta decodificar
         // cada archivo y solo el decodificador decide si es una foto.
         try {
           const { blob, width, height } = await compressPhoto(file)
+          // Control de duplicados: si la foto comprimida tiene la misma
+          // huella que una ya en el tablero, se salta sin subirla.
+          // Si el cálculo falla, se sube igual: el control nunca debe
+          // impedir una subida.
+          let hash: string | null = null
+          try {
+            hash = await hashBlob(blob)
+          } catch {
+            hash = null
+          }
+          if (hash && knownHashes.has(hash)) {
+            duplicates++
+            continue
+          }
           const path = await uploadPhoto(token, blob, file.name)
           // La foto se guarda en el tablero como data URL: tldraw
           // rechaza las URLs blob: como src y tumba el tablero.
@@ -443,7 +479,9 @@ export default function App() {
             bounds.center.x,
             bounds.center.y,
             added,
+            hash ?? '',
           )
+          if (hash) knownHashes.add(hash)
           added++
         } catch (e) {
           // Una foto mala no aborta el resto del lote.
@@ -451,17 +489,32 @@ export default function App() {
         }
       }
       setCloudReady(true)
-      setCloudMsg(
-        added === 0
-          ? firstError
-            ? 'No se pudo subir la foto: ' + firstError
-            : 'No se pudo agregar ninguna foto: no se reconoció el formato de imagen'
-          : added === 1
+      let msg: string
+      if (added === 0 && duplicates === 0) {
+        msg = firstError
+          ? 'No se pudo subir la foto: ' + firstError
+          : 'No se pudo agregar ninguna foto: no se reconoció el formato de imagen'
+      } else if (added === 0) {
+        msg =
+          duplicates === 1
+            ? 'Esa foto ya está en el tablero'
+            : `Esas ${duplicates} fotos ya están en el tablero`
+        if (firstError) msg += '; no se pudo subir otra: ' + firstError
+      } else if (duplicates === 0) {
+        msg =
+          added === 1
             ? '✓ Foto guardada en OneDrive'
-            : `✓ ${added} fotos guardadas en OneDrive`,
-      )
+            : `✓ ${added} fotos guardadas en OneDrive`
+      } else {
+        msg = `✓ ${added === 1 ? 'Foto guardada' : `${added} fotos guardadas`} en OneDrive; ${
+          duplicates === 1 ? '1 ya estaba' : `${duplicates} ya estaban`
+        } en el tablero`
+      }
+      setCloudMsg(msg)
       // Solo el éxito se borra solo: el error se queda hasta tocarlo.
-      if (added > 0) window.setTimeout(() => setCloudMsg(null), 6000)
+      // El aviso de duplicado también se borra solo si no hubo error.
+      if (added > 0 || (duplicates > 0 && !firstError))
+        window.setTimeout(() => setCloudMsg(null), 6000)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (!msg.includes('Redirigiendo')) {

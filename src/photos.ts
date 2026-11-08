@@ -12,6 +12,29 @@ const MAX_DIM = 1600
 const JPEG_QUALITY = 0.85
 const MAX_DISPLAY_W = 600
 
+/** SHA-256 (hex) de unos bytes: identifica el contenido de la foto. */
+export async function hashBytes(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes as BufferSource)
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/** SHA-256 de un blob (la foto ya comprimida). */
+export async function hashBlob(blob: Blob): Promise<string> {
+  return hashBytes(new Uint8Array(await blob.arrayBuffer()))
+}
+
+/** SHA-256 del contenido de una data URL (las fotos ya guardadas en el tablero). */
+export async function hashDataUrl(dataUrl: string): Promise<string | null> {
+  const comma = dataUrl.indexOf(',')
+  if (!dataUrl.startsWith('data:') || comma < 0) return null
+  const binary = atob(dataUrl.slice(comma + 1))
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return hashBytes(bytes)
+}
+
 /** Convierte un blob a data URL (la forma en que tldraw guarda imágenes locales). */
 export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -136,6 +159,7 @@ export function addPhotoToBoard(
   centerX: number,
   centerY: number,
   index = 0,
+  hash = '',
 ): void {
   const displayW = Math.min(width, MAX_DISPLAY_W)
   const displayH = Math.round((height * displayW) / width)
@@ -145,7 +169,9 @@ export function addPhotoToBoard(
       id: assetId,
       typeName: 'asset',
       type: 'image',
-      meta: { onedrivePath: path },
+      // photoHash identifica el contenido: evita subir dos veces la
+      // misma foto (el control de duplicados lo compara con el tablero).
+      meta: { onedrivePath: path, ...(hash ? { photoHash: hash } : {}) },
       props: {
         name: path.split('/').pop() ?? 'foto',
         src,
