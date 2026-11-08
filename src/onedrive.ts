@@ -68,6 +68,19 @@ async function fetchWithTimeout(
   }
 }
 
+async function graphError(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as {
+      error?: { code?: string; message?: string }
+    }
+    const code = body.error?.code
+    const msg = body.error?.message
+    return `OneDrive ${res.status}${code ? ` ${code}` : ''}${msg ? `: ${msg}` : ''}`
+  } catch {
+    return `OneDrive ${res.status}`
+  }
+}
+
 /** null si el archivo aún no existe en OneDrive. */
 export async function downloadBoardFile(
   token: string,
@@ -76,12 +89,14 @@ export async function downloadBoardFile(
     headers: { Authorization: `Bearer ${token}` },
   })
   if (res.status === 404) return null
-  if (!res.ok) throw new Error(`OneDrive ${res.status}`)
+  if (!res.ok) throw new Error(await graphError(res))
   return (await res.json()) as CloudBoardFile
 }
 
-/** Sube el tablero actual a OneDrive. Devuelve la fecha guardada. */
-export async function uploadBoardFile(
+/** La subida real del tablero (un intento, con un reintento si OneDrive
+ *  responde 409: ese error es el bloqueo por otra escritura en curso
+ *  sobre el mismo archivo y suele bastar con esperar un momento). */
+async function uploadBoardFileNow(
   token: string,
   editor: Editor,
 ): Promise<string> {
@@ -94,18 +109,49 @@ export async function uploadBoardFile(
     // así que no se duplica entre dispositivos.
     snapshot: editor.getSnapshot().document,
   }
-  const res = await fetchWithTimeout(`${GRAPH}${BOARD_PATH}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(file),
-  })
-  if (!res.ok) throw new Error(`OneDrive ${res.status}`)
-  setMarker(savedAt)
-  clearDirty()
-  return savedAt
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetchWithTimeout(`${GRAPH}${BOARD_PATH}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(file),
+    })
+    if (res.ok) {
+      setMarker(savedAt)
+      clearDirty()
+      return savedAt
+    }
+    // 409 = otra escritura sobre tablero.json está en curso (por
+    // ejemplo, el guardado automático que se dispara 2 s después de
+    // un cambio y un toque manual a ⇧ Nube al mismo tiempo).
+    if (res.status === 409 && attempt === 0) {
+      await new Promise((r) => window.setTimeout(r, 1500))
+      continue
+    }
+    throw new Error(await graphError(res))
+  }
+  throw new Error('OneDrive 409')
+}
+
+/**
+ * Sube el tablero actual a OneDrive. Devuelve la fecha guardada.
+ * Las subidas van en serie (una sola cadena para toda la app): el
+ * guardado automático y el manual a ⇧ Nube ya no pueden chocar con
+ * dos PUT al mismo archivo a la vez, que es lo que OneDrive
+ * respondía con 409.
+ */
+let uploadChain: Promise<string> = Promise.resolve('')
+export async function uploadBoardFile(
+  token: string,
+  editor: Editor,
+): Promise<string> {
+  const run = uploadChain.then(() => uploadBoardFileNow(token, editor))
+  // Que la cadena no se rompa si esta subida falla: la siguiente
+  // sigue intentándolo.
+  uploadChain = run.catch(() => '')
+  return run
 }
 
 /**
