@@ -42,7 +42,8 @@ export function Screensaver({
     return () => window.removeEventListener('keydown', onKey)
   }, [onExit])
 
-  const photo = photos[index]
+  const safeIndex = Math.min(index, Math.max(photos.length - 1, 0))
+  const photo = photos[safeIndex]
   if (!photo) return null
   return (
     <div
@@ -82,7 +83,7 @@ export function Screensaver({
           pointerEvents: 'none',
         }}
       >
-        {photo.name} · {index + 1} / {photos.length} · toca para salir
+        {photo.name} · {safeIndex + 1} / {photos.length} · toca para salir
       </div>
     </div>
   )

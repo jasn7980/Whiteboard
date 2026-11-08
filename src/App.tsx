@@ -30,6 +30,22 @@ import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
 
+/** Fotos del tablero para el salvapantallas (excluye el GIF de Muse). */
+function readBoardPhotos(editor: Editor): ScreensaverPhoto[] {
+  return editor
+    .getAssets()
+    .filter(
+      (a) =>
+        a.type === 'image' &&
+        typeof (a.meta as Record<string, unknown>)?.onedrivePath === 'string',
+    )
+    .map((a) => ({
+      src: (a.props as { src?: string }).src ?? '',
+      name: (a.props as { name?: string }).name ?? 'foto',
+    }))
+    .filter((p) => p.src)
+}
+
 function createCard(editor: Editor, kind: string, title: string) {
   const bounds = editor.getViewportPageBounds()
   const jitter = Math.random() * 60 - 30
@@ -110,18 +126,7 @@ export default function App() {
         }
         const editor = editorRef.current
         if (!editor) return
-        const photos = editor
-          .getAssets()
-          .filter(
-            (a) =>
-              a.type === 'image' &&
-              typeof (a.meta as Record<string, unknown>)?.onedrivePath === 'string',
-          )
-          .map((a) => ({
-            src: (a.props as { src?: string }).src ?? '',
-            name: (a.props as { name?: string }).name ?? 'foto',
-          }))
-          .filter((p) => p.src)
+        const photos = readBoardPhotos(editor)
         if (photos.length === 0) {
           arm()
           return
@@ -223,6 +228,13 @@ export default function App() {
       editor.loadSnapshot(file.snapshot)
       setCloudMarker(file.savedAt)
       setCloudUpdate(null)
+      // Si el salvapantallas está corriendo, su lista de fotos se
+      // actualiza sola con la versión nueva: antes quedaba congelada
+      // con las fotos que había al arrancar, y una foto agregada desde
+      // el teléfono no aparecía hasta salir y volver a entrar.
+      if (screensaverOnRef.current) {
+        setScreensaverPhotos(readBoardPhotos(editor))
+      }
       setCloudMsg('✓ Tablero actualizado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
     } catch {
