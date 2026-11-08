@@ -126,6 +126,99 @@ export async function ensurePhotosFolder(token: string): Promise<void> {
   )
 }
 
+/** Huellas SHA-256 de las fotos que ya están en el tablero. */
+export async function boardPhotoHashes(editor: Editor): Promise<Set<string>> {
+  const hashes = new Set<string>()
+  for (const asset of editor.getAssets()) {
+    if (asset.type !== 'image') continue
+    const meta = asset.meta as Record<string, unknown> | undefined
+    if (typeof meta?.onedrivePath !== 'string') continue
+    try {
+      const stored =
+        typeof meta.photoHash === 'string' ? meta.photoHash : null
+      const hash =
+        stored ??
+        (await hashDataUrl((asset.props as { src?: string }).src ?? ''))
+      if (hash) hashes.add(hash)
+    } catch {
+      // Sin huella no se puede comparar: esa foto no bloquea nada.
+    }
+  }
+  return hashes
+}
+
+/** Rutas en OneDrive de las fotos que ya están en el tablero. */
+export function boardPhotoPaths(editor: Editor): Set<string> {
+  const paths = new Set<string>()
+  for (const asset of editor.getAssets()) {
+    if (asset.type !== 'image') continue
+    const meta = asset.meta as Record<string, unknown> | undefined
+    if (typeof meta?.onedrivePath === 'string') paths.add(meta.onedrivePath)
+  }
+  return paths
+}
+
+function encodeDrivePath(path: string): string {
+  return path
+    .split('/')
+    .map((seg) => encodeURIComponent(seg))
+    .join('/')
+}
+
+export interface OneDrivePhoto {
+  name: string
+  path: string
+  downloadUrl: string
+}
+
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i
+
+/**
+ * Lista las fotos de la carpeta fotos/ en OneDrive (la carpeta propia
+ * de la app: con el permiso actual el tablero no ve más allá de ella).
+ * downloadUrl es un enlace directo y temporal, útil como miniatura.
+ */
+export async function listAppPhotos(token: string): Promise<OneDrivePhoto[]> {
+  const res = await fetch(
+    `${GRAPH}/me/drive/special/approot:/${PHOTOS_DIR}:/children`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!res.ok)
+    throw new Error(
+      `OneDrive ${await graphError(res)} al listar las fotos`,
+    )
+  const body = (await res.json()) as {
+    value?: Array<{
+      name: string
+      file?: unknown
+      '@microsoft.graph.downloadUrl'?: string
+    }>
+  }
+  return (body.value ?? [])
+    .filter((i) => i.file && IMAGE_EXT.test(i.name))
+    .map((i) => ({
+      name: i.name,
+      path: `${PHOTOS_DIR}/${i.name}`,
+      downloadUrl: i['@microsoft.graph.downloadUrl'] ?? '',
+    }))
+}
+
+/** Descarga una foto de la carpeta fotos/ en OneDrive. */
+export async function downloadPhoto(
+  token: string,
+  path: string,
+): Promise<Blob> {
+  const res = await fetch(
+    `${GRAPH}/me/drive/special/approot:/${encodeDrivePath(path)}:/content`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!res.ok)
+    throw new Error(
+      `OneDrive ${await graphError(res)} al descargar la foto`,
+    )
+  return res.blob()
+}
+
 /** Sube la foto comprimida a la carpeta de la app en OneDrive. Devuelve su ruta. */
 export async function uploadPhoto(
   token: string,

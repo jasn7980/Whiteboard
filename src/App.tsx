@@ -11,12 +11,17 @@ import { ensureMuseGif, restoreMuseGif } from './museGif'
 import {
   addPhotoToBoard,
   blobToDataUrl,
+  boardPhotoHashes,
+  boardPhotoPaths,
   compressPhoto,
+  downloadPhoto,
   ensurePhotosFolder,
   hashBlob,
-  hashDataUrl,
+  listAppPhotos,
   uploadPhoto,
+  type OneDrivePhoto,
 } from './photos'
+import { PhotoPicker } from './PhotoPicker'
 import { syncCalendarEvents } from './sync'
 import { Screensaver, type ScreensaverPhoto } from './Screensaver'
 import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
@@ -65,6 +70,11 @@ export default function App() {
   const [cloudMsg, setCloudMsg] = useState<string | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerPhotos, setPickerPhotos] = useState<OneDrivePhoto[] | null>(null)
+  const [pickerOnBoard, setPickerOnBoard] = useState<Set<string>>(new Set())
+  const [pickerBusy, setPickerBusy] = useState<string | null>(null)
+  const [pickerNote, setPickerNote] = useState<string | null>(null)
   const [debugError, setDebugError] = useState<string | null>(null)
   const [screensaverOn, setScreensaverOn] = useState(false)
   const [screensaverPhotos, setScreensaverPhotos] = useState<ScreensaverPhoto[]>([])
@@ -431,22 +441,7 @@ export default function App() {
       // Huellas de las fotos que ya están en el tablero: la guardada en
       // meta.photoHash si existe; si no, se calcula del src (data URL),
       // así el control también cubre las fotos subidas antes que él.
-      const knownHashes = new Set<string>()
-      for (const asset of editor.getAssets()) {
-        if (asset.type !== 'image') continue
-        const meta = asset.meta as Record<string, unknown> | undefined
-        if (typeof meta?.onedrivePath !== 'string') continue
-        try {
-          const stored =
-            typeof meta.photoHash === 'string' ? meta.photoHash : null
-          const hash =
-            stored ??
-            (await hashDataUrl((asset.props as { src?: string }).src ?? ''))
-          if (hash) knownHashes.add(hash)
-        } catch {
-          // Sin huella no se puede comparar: esa foto no bloquea nada.
-        }
-      }
+      const knownHashes = await boardPhotoHashes(editor)
       for (const file of files) {
         // Sin filtro previo por tipo o extensión: se intenta decodificar
         // cada archivo y solo el decodificador decide si es una foto.
@@ -524,6 +519,81 @@ export default function App() {
       }
     } finally {
       setPhotoBusy(false)
+    }
+  }
+
+  /**
+   * Abre el selector de fotos ya guardadas en OneDrive (carpeta fotos/
+   * de la app): lista las fotos con miniatura y marca las que ya están
+   * en el tablero.
+   */
+  const handleOpenPicker = async () => {
+    const editor = editorRef.current
+    if (!editor) return
+    setPickerOpen(true)
+    setPickerPhotos(null)
+    setPickerNote(null)
+    setPickerOnBoard(boardPhotoPaths(editor))
+    try {
+      const token = await getToken(SCOPES.files)
+      setPickerPhotos(await listAppPhotos(token))
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (!msg.includes('Redirigiendo')) {
+        setPickerNote('No se pudo leer OneDrive: ' + msg)
+      }
+    }
+  }
+
+  /**
+   * Agrega al tablero una foto elegida del selector de OneDrive: se
+   * descarga el archivo ya guardado (no se vuelve a subir) y se aplica
+   * el mismo control de duplicados que a las subidas nuevas.
+   */
+  const handlePickPhoto = async (photo: OneDrivePhoto) => {
+    const editor = editorRef.current
+    if (!editor) return
+    if (pickerOnBoard.has(photo.path)) {
+      setPickerNote('Esa foto ya está en el tablero')
+      return
+    }
+    setPickerBusy(photo.path)
+    setPickerNote(null)
+    try {
+      const token = await getToken(SCOPES.files)
+      const blob = await downloadPhoto(token, photo.path)
+      const hash = await hashBlob(blob).catch(() => null)
+      const known = await boardPhotoHashes(editor)
+      if (hash && known.has(hash)) {
+        setPickerNote('Esa foto ya está en el tablero')
+        return
+      }
+      const bmp = await createImageBitmap(blob)
+      const src = await blobToDataUrl(blob)
+      const bounds = editor.getViewportPageBounds()
+      addPhotoToBoard(
+        editor,
+        photo.path,
+        src,
+        bmp.width,
+        bmp.height,
+        bounds.center.x,
+        bounds.center.y,
+        0,
+        hash ?? '',
+      )
+      setPickerOnBoard(new Set([...pickerOnBoard, photo.path]))
+      setPickerOpen(false)
+      setCloudReady(true)
+      setCloudMsg('✓ Foto agregada desde OneDrive')
+      window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (!msg.includes('Redirigiendo')) {
+        setPickerNote('No se pudo agregar la foto: ' + msg)
+      }
+    } finally {
+      setPickerBusy(null)
     }
   }
 
@@ -634,6 +704,13 @@ export default function App() {
           }}
         >
           {photoBusy ? 'Subiendo…' : '📷 Foto'}
+        </button>
+        <button
+          style={barButton}
+          title="Elegir una foto ya guardada en OneDrive"
+          onClick={() => void handleOpenPicker()}
+        >
+          📂 OneDrive
         </button>
         <select
           style={{ ...barButton, padding: '6px 4px' }}
@@ -809,6 +886,17 @@ export default function App() {
       ) : null}
       {screensaverOn ? (
         <Screensaver photos={screensaverPhotos} onExit={() => setScreensaverOn(false)} />
+      ) : null}
+      {pickerOpen ? (
+        <PhotoPicker
+          loading={pickerPhotos === null}
+          photos={pickerPhotos ?? []}
+          onBoardPaths={pickerOnBoard}
+          busyPath={pickerBusy}
+          note={pickerNote}
+          onPick={(photo) => void handlePickPhoto(photo)}
+          onClose={() => setPickerOpen(false)}
+        />
       ) : null}
     </div>
   )
