@@ -23,27 +23,95 @@ import {
 } from './photos'
 import { PhotoPicker } from './PhotoPicker'
 import { syncCalendarEvents } from './sync'
-import { Screensaver, type ScreensaverPhoto } from './Screensaver'
+import { Screensaver, type ScreensaverItem } from './Screensaver'
+import {
+  addVideoToBoard,
+  boardVideoHashes,
+  downloadVideo,
+  ensureVideosFolder,
+  extractPoster,
+  uploadVideo,
+} from './videos'
 import { attachCloudSave, initCloudBoard, uploadBoardFile, downloadBoardFile, fetchNewerCloudBoard, isCloudDirty, setCloudMarker } from './onedrive'
 import type { CloudBoardFile } from './onedrive'
 import { SCOPES, TLDRAW_LICENSE_KEY } from './config'
 
 const shapeUtils = [UniversalCardUtil]
 
-/** Fotos del tablero para el salvapantallas (excluye el GIF de Muse). */
-function readBoardPhotos(editor: Editor): ScreensaverPhoto[] {
-  return editor
-    .getAssets()
-    .filter(
-      (a) =>
-        a.type === 'image' &&
-        typeof (a.meta as Record<string, unknown>)?.onedrivePath === 'string',
-    )
-    .map((a) => ({
-      src: (a.props as { src?: string }).src ?? '',
-      name: (a.props as { name?: string }).name ?? 'foto',
-    }))
-    .filter((p) => p.src)
+/** Ítems del tablero para el salvapantallas (excluye el GIF de Muse). */
+function readBoardItemsSync(editor: Editor): Array<
+  | { kind: 'photo'; src: string; name: string }
+  | { kind: 'video'; path: string; name: string; posterSrc: string }
+> {
+  const items: Array<
+    | { kind: 'photo'; src: string; name: string }
+    | { kind: 'video'; path: string; name: string; posterSrc: string }
+  > = []
+  for (const a of editor.getAssets()) {
+    if (a.type !== 'image') continue
+    const meta = a.meta as Record<string, unknown> | undefined
+    if (typeof meta?.onedrivePath !== 'string') continue
+    const src = (a.props as { src?: string }).src ?? ''
+    const name = (a.props as { name?: string }).name ?? 'foto'
+    if (!src) continue
+    if (meta.isVideo === true) {
+      items.push({ kind: 'video', path: meta.onedrivePath, name, posterSrc: src })
+    } else {
+      items.push({ kind: 'photo', src, name })
+    }
+  }
+  return items
+}
+
+/**
+ * Ítems listos para el salvapantallas: las fotos van tal cual y cada
+ * video se descarga de OneDrive (en paralelo) para reproducirlo entero.
+ * Si un video no se puede descargar (o no hay sesión), entra con su
+ * póster como foto para no romper la rotación.
+ */
+async function readBoardItems(
+  editor: Editor,
+  token: string | null,
+): Promise<ScreensaverItem[]> {
+  const scanned = readBoardItemsSync(editor)
+  return Promise.all(
+    scanned.map(async (it) => {
+      if (it.kind === 'photo') return it
+      if (!token) {
+        return {
+          kind: 'video' as const,
+          src: it.posterSrc,
+          name: it.name,
+          videoSrc: '',
+        }
+      }
+      try {
+        const blob = await downloadVideo(token, it.path)
+        return {
+          kind: 'video' as const,
+          src: it.posterSrc,
+          name: it.name,
+          videoSrc: URL.createObjectURL(blob),
+        }
+      } catch {
+        return {
+          kind: 'video' as const,
+          src: it.posterSrc,
+          name: it.name,
+          videoSrc: '',
+        }
+      }
+    }),
+  )
+}
+
+/** Libera las URLs blob: de los videos de una lista del salvapantallas. */
+function revokeVideoUrls(items: ScreensaverItem[]): void {
+  for (const it of items) {
+    if (it.kind === 'video' && it.videoSrc.startsWith('blob:')) {
+      URL.revokeObjectURL(it.videoSrc)
+    }
+  }
 }
 
 function createCard(editor: Editor, kind: string, title: string) {
@@ -76,6 +144,7 @@ export default function App() {
   const cloudInitRef = useRef<Promise<boolean> | null>(null)
   const pollRef = useRef<number | null>(null)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
+  const videoInputRef = useRef<HTMLInputElement | null>(null)
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [syncBusy, setSyncBusy] = useState(false)
@@ -86,6 +155,7 @@ export default function App() {
   const [cloudMsg, setCloudMsg] = useState<string | null>(null)
   const [cloudBusy, setCloudBusy] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [videoBusy, setVideoBusy] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerPhotos, setPickerPhotos] = useState<OneDrivePhoto[] | null>(null)
   const [pickerOnBoard, setPickerOnBoard] = useState<Set<string>>(new Set())
@@ -93,7 +163,15 @@ export default function App() {
   const [pickerNote, setPickerNote] = useState<string | null>(null)
   const [debugError, setDebugError] = useState<string | null>(null)
   const [screensaverOn, setScreensaverOn] = useState(false)
-  const [screensaverPhotos, setScreensaverPhotos] = useState<ScreensaverPhoto[]>([])
+  const [screensaverItems, setScreensaverItemsState] = useState<ScreensaverItem[]>([])
+  const screensaverItemsRef = useRef<ScreensaverItem[]>([])
+  // Cambia la lista del salvapantallas liberando las URLs blob: de los
+  // videos de la lista anterior (si no, cada actualización las acumula).
+  const setScreensaverItems = useCallback((items: ScreensaverItem[]) => {
+    revokeVideoUrls(screensaverItemsRef.current)
+    screensaverItemsRef.current = items
+    setScreensaverItemsState(items)
+  }, [])
   const screensaverOnRef = useRef(false)
   // Minutos sin actividad para entrar al salvapantallas (0 = apagado).
   const [idleMinutes, setIdleMinutes] = useState<number>(() => {
@@ -111,8 +189,9 @@ export default function App() {
 
   /**
    * Salvapantallas: tras idleMinutes sin actividad (mover, tocar, teclear
-   * o rodar), las fotos del tablero pasan a pantalla completa una a una.
-   * Cualquier actividad lo cierra y reinicia el conteo. Sin fotos no entra.
+   * o rodar), las fotos y videos del tablero pasan a pantalla completa
+   * uno a uno (cada video se reproduce entero). Cualquier actividad lo
+   * cierra y reinicia el conteo. Sin fotos ni videos no entra.
    */
   useEffect(() => {
     if (idleMinutes <= 0) return
@@ -126,13 +205,20 @@ export default function App() {
         }
         const editor = editorRef.current
         if (!editor) return
-        const photos = readBoardPhotos(editor)
-        if (photos.length === 0) {
-          arm()
-          return
-        }
-        setScreensaverPhotos(photos)
-        setScreensaverOn(true)
+        void (async () => {
+          // Los videos se descargan de OneDrive antes de entrar, para
+          // que la rotación no se detenga a mitad de uno.
+          const items = await readBoardItems(
+            editor,
+            await getTokenSilent(SCOPES.files),
+          )
+          if (items.length === 0) {
+            arm()
+            return
+          }
+          setScreensaverItems(items)
+          setScreensaverOn(true)
+        })()
       }, idleMinutes * 60000)
     }
     const onActivity = () => {
@@ -233,7 +319,13 @@ export default function App() {
       // con las fotos que había al arrancar, y una foto agregada desde
       // el teléfono no aparecía hasta salir y volver a entrar.
       if (screensaverOnRef.current) {
-        setScreensaverPhotos(readBoardPhotos(editor))
+        void (async () => {
+          const items = await readBoardItems(
+            editor,
+            await getTokenSilent(SCOPES.files),
+          )
+          if (screensaverOnRef.current) setScreensaverItems(items)
+        })()
       }
       setCloudMsg('✓ Tablero actualizado desde OneDrive')
       window.setTimeout(() => setCloudMsg(null), 6000)
@@ -535,6 +627,93 @@ export default function App() {
   }
 
   /**
+   * Sube los videos elegidos a OneDrive (carpeta videos/) y los pone en
+   * el tablero como póster, en el centro de la vista. En el teléfono el
+   * selector ofrece grabar o elegir de la galería. Los archivos grandes
+   * suben por sesión reanudable (la subida simple solo admite 4 MB).
+   *
+   * Recibe File[] ya copiados, igual que las fotos.
+   */
+  const handleVideoFiles = async (files: File[]) => {
+    const editor = editorRef.current
+    if (!editor || files.length === 0) return
+    setVideoBusy(true)
+    try {
+      const token = await getToken(SCOPES.files)
+      await ensureVideosFolder(token)
+      const bounds = editor.getViewportPageBounds()
+      let added = 0
+      let duplicates = 0
+      let firstError: string | null = null
+      const knownHashes = await boardVideoHashes(editor)
+      for (const file of files) {
+        try {
+          const { blob, width, height } = await extractPoster(file)
+          let hash: string | null = null
+          try {
+            hash = await hashBlob(file)
+          } catch {
+            hash = null
+          }
+          if (hash && knownHashes.has(hash)) {
+            duplicates++
+            continue
+          }
+          const path = await uploadVideo(token, file)
+          const posterSrc = await blobToDataUrl(blob)
+          addVideoToBoard(
+            editor,
+            path,
+            posterSrc,
+            width,
+            height,
+            bounds.center.x,
+            bounds.center.y,
+            added,
+            hash ?? '',
+          )
+          if (hash) knownHashes.add(hash)
+          added++
+        } catch (e) {
+          if (!firstError) firstError = e instanceof Error ? e.message : String(e)
+        }
+      }
+      setCloudReady(true)
+      let msg: string
+      if (added === 0 && duplicates === 0) {
+        msg = firstError
+          ? 'No se pudo subir el video: ' + firstError
+          : 'No se pudo agregar ningún video: no se reconoció el formato'
+      } else if (added === 0) {
+        msg =
+          duplicates === 1
+            ? 'Ese video ya está en el tablero'
+            : `Esos ${duplicates} videos ya están en el tablero`
+        if (firstError) msg += '; no se pudo subir otro: ' + firstError
+      } else if (duplicates === 0) {
+        msg =
+          added === 1
+            ? '✓ Video guardado en OneDrive'
+            : `✓ ${added} videos guardados en OneDrive`
+      } else {
+        msg = `✓ ${added === 1 ? 'Video guardado' : `${added} videos guardados`} en OneDrive; ${
+          duplicates === 1 ? '1 ya estaba' : `${duplicates} ya estaban`
+        } en el tablero`
+      }
+      setCloudMsg(msg)
+      if (added > 0 || (duplicates > 0 && !firstError))
+        window.setTimeout(() => setCloudMsg(null), 6000)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (!msg.includes('Redirigiendo')) {
+        setCloudMsg('No se pudo subir el video: ' + msg)
+      }
+    } finally {
+      setVideoBusy(false)
+    }
+  }
+
+  /**
    * Abre el selector de fotos ya guardadas en OneDrive (carpeta fotos/
    * de la app): lista las fotos con miniatura y marca las que ya están
    * en el tablero.
@@ -719,6 +898,18 @@ export default function App() {
         </button>
         <button
           style={barButton}
+          title="Agregar un video al tablero (se guarda en OneDrive; en el salvapantallas se reproduce entero)"
+          disabled={videoBusy}
+          onClick={() => {
+            // Igual que las fotos: renueva el permiso ANTES de elegir.
+            void getToken(SCOPES.files).catch(() => {})
+            videoInputRef.current?.click()
+          }}
+        >
+          {videoBusy ? 'Subiendo…' : '📹 Video'}
+        </button>
+        <button
+          style={barButton}
           title="Elegir una foto ya guardada en OneDrive"
           onClick={() => void handleOpenPicker()}
         >
@@ -726,7 +917,7 @@ export default function App() {
         </button>
         <select
           style={{ ...barButton, padding: '6px 4px' }}
-          title="Salvapantallas: muestra las fotos del tablero tras este tiempo sin actividad"
+          title="Salvapantallas: muestra las fotos y videos del tablero tras este tiempo sin actividad"
           value={idleMinutes}
           onChange={(e) => {
             const v = Number(e.target.value)
@@ -756,6 +947,18 @@ export default function App() {
             const picked = Array.from(e.target.files ?? [])
             e.target.value = ''
             void handlePhotoFiles(picked)
+          }}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const picked = Array.from(e.target.files ?? [])
+            e.target.value = ''
+            void handleVideoFiles(picked)
           }}
         />
         <div style={{ width: 1, flexShrink: 0, alignSelf: 'stretch', background: '#ddd' }} />
@@ -897,7 +1100,13 @@ export default function App() {
         </div>
       ) : null}
       {screensaverOn ? (
-        <Screensaver photos={screensaverPhotos} onExit={() => setScreensaverOn(false)} />
+        <Screensaver
+          items={screensaverItems}
+          onExit={() => {
+            setScreensaverItems([])
+            setScreensaverOn(false)
+          }}
+        />
       ) : null}
       {pickerOpen ? (
         <PhotoPicker
